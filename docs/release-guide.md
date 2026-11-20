@@ -17,6 +17,10 @@ This guide grows with the tooling-ci-cd work (`.scratch/tooling-ci-cd/`). Today 
    - Require a pull request before merging.
    - Require status checks to pass, and select **`check`**. It is one job that always runs, so it never blocks a merge by being skipped.
    - Require branches to be up to date before merging.
+   - Block force pushes and deletion of `main`; allow squash merging only.
+   - Under Settings → General, enable "Automatically delete head branches".
+
+Branch naming and commit rules are in `docs/agents/branching.md`.
 5. **Enable the Turborepo remote cache** (optional but recommended; CI works without it):
    - Create a Vercel team token (or your remote-cache provider's) and add it as the repository **secret** `TURBO_TOKEN`.
    - Add the team slug as the repository **variable** `TURBO_TEAM`.

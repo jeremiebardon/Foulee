@@ -61,3 +61,7 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Branching
+
+Trunk-based, branch per issue, never commit to `main`. Before implementing an issue, create its branch. See `docs/agents/branching.md`.
