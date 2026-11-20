@@ -1,6 +1,6 @@
 # Release guide
 
-This guide grows with the tooling-ci-cd work (`.scratch/tooling-ci-cd/`). Today it covers the one-time GitHub setup. Agents never create the remote repository, accounts or tokens; you do these steps yourself.
+This guide grows with the tooling-ci-cd work (spec issue #9). Today it covers the one-time GitHub setup. Agents never create the remote repository, accounts or tokens; you do these steps yourself.
 
 ## One-time GitHub setup
 
