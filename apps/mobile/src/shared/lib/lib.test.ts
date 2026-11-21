@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { addDays, diffDays, mondayOf, monthGrid } from './dates';
 import { formatClock, formatDistance, formatDuration, parseClock, parseDistance, parsePace } from './format';
 

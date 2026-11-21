@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { Workout } from '@/features/workouts/domain';
 import { copyWeek, normalizeStart, planEnd, sessionDate, toSessionViews, weeklyVolumes, type Plan, type Session } from './plan';
 

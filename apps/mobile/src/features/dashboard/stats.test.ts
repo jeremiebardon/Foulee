@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { toSessionViews, type Plan, type Session } from '@/features/plans/domain';
 import type { Workout } from '@/features/workouts/domain';
 import { computeStats, niceCeil } from './stats';
