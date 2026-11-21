@@ -6,8 +6,8 @@ import type { Activity } from '../domain';
  */
 export interface ActivitySource {
   /**
-   * Activities of any kind that started after `since` (all of them when it is
-   * undefined). Rejects with `GarminAccessExpiredError` when the source refuses
+   * Activities that started after `since` (all of them when it is undefined).
+   * A source may already leave out kinds Foulée never imports, such as non-running ones. Rejects with `GarminAccessExpiredError` when the source refuses
    * our access.
    */
   listActivitiesSince(since: Date | undefined): Promise<Activity[]>;

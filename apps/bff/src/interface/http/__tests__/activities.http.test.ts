@@ -205,21 +205,6 @@ describe('GET /v1/activities', () => {
     });
   });
 
-  describe('as wired by AppModule', () => {
-    it('serves the in-memory sample Activities until the Garmin adapter exists', async () => {
-      const moduleRef = await Test.createTestingModule({ imports: [AppModule.register(env)] }).compile();
-      app = moduleRef.createNestApplication({ logger: false });
-      await app.init();
-
-      const res = await authorized();
-
-      expect(res.status).toBe(200);
-      const page = listActivitiesResponseSchema.parse(res.body);
-      expect(page.activities.length).toBeGreaterThan(0);
-      expect(page.nextCursor).not.toBeNull();
-    });
-  });
-
   describe('errors', () => {
     it('answers 400 invalid_request to a since that is not a cursor', async () => {
       await startWith([]);
