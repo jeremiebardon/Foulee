@@ -1,0 +1,43 @@
+// App config only loads other TypeScript files through tsx's require hook (Expo SDK 58 TypeScript guide).
+import 'tsx/cjs';
+import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { version } from './package.json';
+import { resolveVariant } from './src/shared/config/variant';
+
+/*
+ * Thin wrapper around the variant module. APP_VARIANT picks the native identity; when it is
+ * unset, the variant of the env file Expo loaded for this mode (.env.development for
+ * `expo start` and debug builds, .env.production for exports and release builds) is used, so
+ * the identity and the bundle agree. See src/shared/config/appConfig.ts.
+ */
+const variant = resolveVariant(process.env.APP_VARIANT || process.env.EXPO_PUBLIC_APP_VARIANT);
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
+  name: variant.name,
+  slug: 'foulee',
+  // The package manifest is the single version source (bumped by changesets).
+  version,
+  orientation: 'portrait',
+  icon: './assets/icon.png',
+  userInterfaceStyle: 'light',
+  scheme: variant.scheme,
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: variant.bundleIdentifier,
+  },
+  android: {
+    adaptiveIcon: {
+      backgroundColor: '#E6F4FE',
+      foregroundImage: './assets/android-icon-foreground.png',
+      backgroundImage: './assets/android-icon-background.png',
+      monochromeImage: './assets/android-icon-monochrome.png',
+    },
+    predictiveBackGestureEnabled: false,
+    package: variant.androidPackage,
+  },
+  plugins: ['expo-router', 'expo-sqlite', 'expo-font'],
+  experiments: {
+    typedRoutes: true,
+  },
+});

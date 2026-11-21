@@ -51,6 +51,18 @@ test('dependencies point one way: workouts <- plans <- calendar, dashboard', asy
   await fails('src/features/workouts/WorkoutListScreen.tsx', "import { useAuth } from '@/features/auth';");
 });
 
+test('app code reads its environment only through the config accessor', async () => {
+  const envErrors = async (filePath, code) => {
+    const [result] = await eslint.lintText(code, { filePath });
+    return result.messages.filter((m) => m.ruleId === 'no-restricted-properties');
+  };
+  const read = 'export const dev = process.env.EXPO_PUBLIC_APP_VARIANT;';
+  assert.notDeepEqual(await envErrors('src/features/dashboard/DashboardScreen.tsx', read), []);
+  assert.notDeepEqual(await envErrors('src/db/client.ts', read), []);
+  assert.deepEqual(await envErrors('src/shared/config/appConfig.ts', read), []);
+  assert.deepEqual(await envErrors('src/features/auth/LoginScreen.test.tsx', read), []);
+});
+
 test('shared code imports no feature', async () => {
   await fails('src/shared/ui/kit.tsx', "import { useAuth } from '@/features/auth';");
   await fails('src/shared/lib/format.ts', "import { workoutTotals } from '@/features/workouts/workout';");
