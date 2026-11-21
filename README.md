@@ -8,21 +8,22 @@ A pnpm + Turborepo monorepo: the app is in `apps/mobile`, shared config in `pack
 pnpm install
 pnpm turbo run lint typecheck test   # every project (add --affected for only what changed)
 cd apps/mobile
-pnpm exec expo start --dev-client   # development build (not Expo Go); press i / a
-pnpm start              # plain `expo start`; press i / a; Expo Go works (expo-sqlite is included)
+pnpm start              # `expo start` for the development build; press a / i, j for dev tools
 pnpm db:generate        # after editing src/db/schema.ts
 ```
 
-### Development build (instead of Expo Go)
+### Development build
 
-`expo-dev-client` is a dependency, so the app can run as a development build. Build and install it once per native change, then start the server with `--dev-client`:
+The app runs on a development build of the development variant ("Foulée Dev"); Expo Go is not supported. Build and install it once per native change, then just start the server:
 
 ```bash
 cd apps/mobile
 pnpm exec expo run:android            # or run:ios (macOS); builds locally and installs the dev build
-# or in the cloud: pnpm dlx eas-cli@latest build --profile development
-pnpm exec expo start --dev-client     # afterwards, just this
+# or in the cloud, on demand: the "Development build" EAS workflow (docs/release-guide.md)
+pnpm start                            # afterwards, just this
 ```
+
+Dev tools, in development only: `j` opens React Native DevTools with the Rozenite panels (Expo Atlas, performance monitor, React Navigation, require profiler); `Shift+M` opens Drizzle Studio on the device database.
 
 Paths below are relative to `apps/mobile`.
 
