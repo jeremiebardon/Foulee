@@ -6,12 +6,12 @@ import { CATEGORY_COLOR, formatTotals } from '@/features/workouts';
 import type { SessionView } from './plan';
 
 /** One session in a plan: workout name, totals, done mark, and an optional trailing action. */
-export const SessionRow = ({ view, prefix, onPress, action }: { view: SessionView; prefix?: string; onPress?(): void; action?: ReactNode }) => (
-  <Pressable disabled={!onPress} onPress={onPress} accessibilityRole={onPress ? 'button' : undefined}
+export const SessionRow = ({ view, prefix, onPress, action, testID }: { view: SessionView; prefix?: string; onPress?(): void; action?: ReactNode; testID?: string }) => (
+  <Pressable testID={testID} disabled={!onPress} onPress={onPress} accessibilityRole={onPress ? 'button' : undefined}
     style={[s.row, { borderLeftColor: CATEGORY_COLOR[view.workout.category] }]}>
     <View style={{ flex: 1, paddingVertical: space.sm }}>
       {prefix && <Txt v="label">{prefix}</Txt>}
-      <Txt style={{ fontWeight: '600' }}>{view.workout.name}</Txt>
+      <Txt testID="session-workout-name" style={{ fontWeight: '600' }}>{view.workout.name}</Txt>
       <Txt v="muted" style={view.done && { color: color.ok, fontWeight: '600' }}>{view.done ? `✓ ${formatTotals({ meters: view.session.doneMeters!, seconds: view.session.doneSeconds!, estimated: false })}` : formatTotals(view.totals)}</Txt>
     </View>
     {action}

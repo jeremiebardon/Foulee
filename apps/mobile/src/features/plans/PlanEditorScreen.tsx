@@ -33,19 +33,19 @@ function Editor({ plan }: { plan: Plan }) {
     });
 
   return (
-    <Screen>
+    <Screen testID="plan-editor">
       <Stack.Screen options={{ title: 'Modifier le plan' }} />
       <Card>
-        <Field label="Nom du plan" defaultValue={plan.name} onChangeText={(name) => updatePlan(plan.id, { name })} />
+        <Field testID="plan-name" label="Nom du plan" defaultValue={plan.name} onChangeText={(name) => updatePlan(plan.id, { name })} />
         <Row style={{ alignItems: 'flex-start' }}>
-          <Stepper label="Début" min={-52} max={52} value={diffDays(plan.startDate, thisMonday) / 7}
+          <Stepper testID="plan-start" label="Début" min={-52} max={52} value={diffDays(plan.startDate, thisMonday) / 7}
             format={(w) => `lun. ${formatShortDate(addDays(thisMonday, w * 7))}`}
             onChange={(w) => updatePlan(plan.id, { startDate: addDays(thisMonday, w * 7) })} />
-          <Stepper label="Semaines" min={1} max={52} value={plan.weeks} onChange={(weeks) => updatePlan(plan.id, { weeks })} />
+          <Stepper testID="plan-weeks" label="Semaines" min={1} max={52} value={plan.weeks} onChange={(weeks) => updatePlan(plan.id, { weeks })} />
         </Row>
         <Row>
-          {plan.selected ? <Txt v="label" style={{ color: color.accent }}>Plan affiché dans le calendrier</Txt> : <Button title="Afficher dans le calendrier" onPress={() => selectPlan(plan.id)} />}
-          <Button title="Supprimer" icon="trash-outline" variant="danger" onPress={remove} />
+          {plan.selected ? <Txt testID="plan-selected" v="label" style={{ color: color.accent }}>Plan affiché dans le calendrier</Txt> : <Button testID="plan-select" title="Afficher dans le calendrier" onPress={() => selectPlan(plan.id)} />}
+          <Button testID="plan-delete" title="Supprimer" icon="trash-outline" variant="danger" onPress={remove} />
         </Row>
       </Card>
 
@@ -58,14 +58,14 @@ function Editor({ plan }: { plan: Plan }) {
             </Pressable>
           ))}
         </ScrollView>
-        <Txt v="h2">Semaine {current + 1}</Txt>
+        <Txt testID="plan-week-title" v="h2">Semaine {current + 1}</Txt>
         <Txt v="muted">
           {formatShortDate(start)} → {formatShortDate(addDays(start, 6))} · {formatDistance(Math.round(volumes[current] / 100) * 100)}
         </Txt>
         {current < plan.weeks - 1 && (
           <Row>
-            <Button title={`Copier vers S${current + 2}`} icon="copy-outline" onPress={() => copyPlanWeek(plan.id, current, [current + 1])} />
-            <Button title="Copier vers la suite" icon="repeat" onPress={() => copyPlanWeek(plan.id, current, volumes.map((_, i) => i).filter((i) => i > current))} />
+            <Button testID="plan-copy-next" title={`Copier vers S${current + 2}`} icon="copy-outline" onPress={() => copyPlanWeek(plan.id, current, [current + 1])} />
+            <Button testID="plan-copy-rest" title="Copier vers la suite" icon="repeat" onPress={() => copyPlanWeek(plan.id, current, volumes.map((_, i) => i).filter((i) => i > current))} />
           </Row>
         )}
       </Card>
@@ -78,18 +78,18 @@ function Editor({ plan }: { plan: Plan }) {
           </View>
           <View style={{ flex: 1, gap: space.sm }}>
             {views.filter((v) => v.session.week === current && v.session.day === day).map((v) => (
-              <SessionRow key={v.session.id} view={v}
-                action={<Button icon="close" label={`Retirer ${v.workout.name}`} variant="ghost" onPress={() => removeSession(v.session.id)} />} />
+              <SessionRow key={v.session.id} testID={`plan-day-${day}-session`} view={v}
+                action={<Button testID="plan-session-remove" icon="close" label={`Retirer ${v.workout.name}`} variant="ghost" onPress={() => removeSession(v.session.id)} />} />
             ))}
-            <Button title="Ajouter" icon="add" variant="ghost" onPress={() => setPickDay(day)} />
+            <Button testID={`plan-day-${day}-add`} title="Ajouter" icon="add" variant="ghost" onPress={() => setPickDay(day)} />
           </View>
         </View>
       ))}
 
-      <Sheet visible={pickDay !== null} title={`${DAY_NAMES[pickDay ?? 0]} · semaine ${current + 1}`} onClose={() => setPickDay(null)}>
-        {workouts.length === 0 && <Button title="Créer un entraînement" variant="primary" onPress={() => { setPickDay(null); router.push('/workouts/new'); }} />}
+      <Sheet testID="plan-pick-sheet" visible={pickDay !== null} title={`${DAY_NAMES[pickDay ?? 0]} · semaine ${current + 1}`} onClose={() => setPickDay(null)}>
+        {workouts.length === 0 && <Button testID="plan-pick-create-workout" title="Créer un entraînement" variant="primary" onPress={() => { setPickDay(null); router.push('/workouts/new'); }} />}
         {workouts.map((w) => (
-          <Pressable key={w.id} accessibilityRole="button" style={s.pick}
+          <Pressable key={w.id} testID="plan-pick-workout" accessibilityRole="button" style={s.pick}
             onPress={() => { addSession({ planId: plan.id, workoutId: w.id, week: current, day: pickDay! }); setPickDay(null); }}>
             <WorkoutSummary workout={w} />
           </Pressable>

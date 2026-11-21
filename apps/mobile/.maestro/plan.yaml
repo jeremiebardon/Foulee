@@ -1,0 +1,76 @@
+appId: com.jbardon.foulee
+name: Create a plan, add sessions, copy the week and show it in the calendar
+tags:
+  - plans
+---
+# The demo seed provides the workouts to schedule (and a first plan).
+- runFlow:
+    file: subflows/launch.yaml
+    env:
+      LINK: foulee://e2e?seed=demo&signedIn=true
+      SCREEN: dashboard-week
+- tapOn:
+    id: tab-plans
+- tapOn:
+    id: plan-new
+- tapOn:
+    id: plan-name
+- eraseText
+- inputText: Plan e2e
+- hideKeyboard
+
+# Two sessions in week 1: Monday and Wednesday.
+- scrollUntilVisible:
+    element:
+      id: plan-day-0-add
+- tapOn:
+    id: plan-day-0-add
+- tapOn:
+    id: plan-pick-workout
+    index: 0
+- assertVisible:
+    id: plan-day-0-session
+- scrollUntilVisible:
+    element:
+      id: plan-day-2-add
+- tapOn:
+    id: plan-day-2-add
+- tapOn:
+    id: plan-pick-workout
+    index: 1
+- assertVisible:
+    id: plan-day-2-session
+
+# Copy week 1 to week 2, and show this plan in the calendar.
+- scrollUntilVisible:
+    element:
+      id: plan-copy-next
+    direction: UP
+- tapOn:
+    id: plan-copy-next
+- scrollUntilVisible:
+    element:
+      id: plan-select
+    direction: UP
+- tapOn:
+    id: plan-select
+- assertVisible:
+    id: plan-selected
+
+# Pressing the focused tab goes back to the list.
+- tapOn:
+    id: tab-plans
+- assertVisible:
+    id: plan-item-name
+    text: Plan e2e
+- tapOn:
+    id: plan-item-name
+    text: Plan e2e
+- assertVisible:
+    id: plan-detail-summary
+    text: '.*0/4.*'
+- assertVisible:
+    id: plan-detail-selected
+- scrollUntilVisible:
+    element:
+      id: plan-week-1-session

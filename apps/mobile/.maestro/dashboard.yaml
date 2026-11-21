@@ -1,0 +1,35 @@
+appId: com.jbardon.foulee
+name: See the training stats on the dashboard
+tags:
+  - dashboard
+---
+# Five weeks into the demo plan, most past sessions done: every stat has a value.
+- runFlow:
+    file: subflows/launch.yaml
+    env:
+      LINK: foulee://e2e?seed=demo&signedIn=true
+      SCREEN: dashboard-week
+- assertVisible:
+    id: dashboard-week-value
+    text: '[0-9]+([,.][0-9])? / [0-9]+ km'
+- assertVisible:
+    id: dashboard-last28-value
+    text: '[0-9]+ km'
+- assertVisible:
+    id: dashboard-pace-value
+    text: '[0-9]+:[0-9]{2} /km'
+- assertVisible:
+    id: dashboard-adherence-value
+    text: '[0-9]+ %'
+- scrollUntilVisible:
+    element:
+      id: dashboard-weekly
+- scrollUntilVisible:
+    element:
+      id: dashboard-open-calendar
+- assertVisible:
+    id: dashboard-next-when
+- tapOn:
+    id: dashboard-open-calendar
+- assertVisible:
+    id: calendar

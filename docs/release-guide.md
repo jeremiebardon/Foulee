@@ -56,6 +56,23 @@ Daily work runs on a development build (the `development` variant with `expo-dev
 - **Cloud build on demand**: the manual EAS workflow `.eas/workflows/development-build.yml` builds the `development` profile (internal distribution) for Android, an iOS device, and the iOS simulator (`development-simulator` profile). Start it from the project's Workflows page on expo.dev, or with `eas workflow:run .eas/workflows/development-build.yml -F platform=android` (`all`, `android` or `ios`). Each build page has an install link and a QR code.
 - **Dev tools**, in development only: press `j` in the `expo start` terminal to open React Native DevTools with the Rozenite panels (Expo Atlas, performance monitor, React Navigation, require profiler), and `Shift+M` to open Drizzle Studio on the device database. Production bundles contain none of this code.
 
+## End-to-end tests (Maestro)
+
+The Maestro flows in `apps/mobile/.maestro/` (sign in, workouts, plans, logging a run, dashboard, demo plan) run against an **e2e build**: the production variant (`APP_VARIANT=production`) with `EXPO_PUBLIC_E2E=true`. Only such a build honours the reset link `foulee://e2e?seed=empty|demo&signedIn=true` that each flow opens after clearing the app's data, and it turns the dev shortcuts on (mock sign-in, demo plan). Development builds and store builds ignore the link. Flows select elements by `testID` only.
+
+- **In CI**: `.eas/workflows/e2e.yml` runs every flow on an Android emulator on pushes to `main` that touch `apps/mobile`, its workspace packages or the lockfile. It looks up an `e2e` build with the same native fingerprint and repacks it with the new JavaScript, or builds one when the fingerprint changed.
+- **Locally on Android** (Maestro CLI and an emulator running): build and install the release APK, then run the flows from `apps/mobile`:
+
+  ```bash
+  APP_VARIANT=production EXPO_PUBLIC_E2E=true pnpm exec expo prebuild --platform android --clean
+  cd android && APP_VARIANT=production EXPO_PUBLIC_E2E=true ./gradlew :app:assembleRelease && cd ..
+  adb -s emulator-5554 install -r android/app/build/outputs/apk/release/app-release.apk
+  pnpm e2e --udid emulator-5554     # all flows; or: maestro test .maestro/plan.yaml
+  ```
+
+  Pass `--udid` whenever a phone is plugged in too, so nothing runs on it. On Windows, a deep checkout path (a git worktree under `.claude/worktrees/`, say) makes the native CMake steps fail on the 260-character path limit; build from a short path such as `C:\foulee`. The e2e build replaces an installed production app (same identity and database file): use an emulator, not your phone. Run `pnpm exec expo prebuild --clean` again before going back to a development build.
+- **Locally on iOS** (macOS): `APP_VARIANT=production EXPO_PUBLIC_E2E=true pnpm exec expo run:ios --configuration Release`, then `pnpm e2e`. Or build the `e2e` profile on EAS, which also makes an iOS simulator build.
+
 ## What the PR check does
 
 `.github/workflows/pr-checks.yml` runs on every pull request and every push to `main`:

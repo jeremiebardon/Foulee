@@ -1,0 +1,39 @@
+appId: com.jbardon.foulee
+name: Log a run from the calendar
+tags:
+  - calendar
+---
+- runFlow:
+    file: subflows/launch.yaml
+    env:
+      LINK: foulee://e2e?seed=demo&signedIn=true
+      SCREEN: dashboard-week
+- tapOn:
+    id: tab-calendar
+# The demo plan runs through this month and always has a session still to run this week.
+- tapOn:
+    id: calendar-day-planned
+    index: 0
+- scrollUntilVisible:
+    element:
+      id: calendar-log-run
+- tapOn:
+    id: calendar-log-run
+- tapOn:
+    id: log-run-distance
+- eraseText
+- inputText: '8,5'
+- hideKeyboard
+- tapOn:
+    id: log-run-duration
+- eraseText
+- inputText: '45:00'
+- hideKeyboard
+- tapOn:
+    id: log-run-save
+- scrollUntilVisible:
+    element:
+      id: calendar-session-done
+- assertVisible:
+    id: calendar-session-done
+    text: '.*8[,.]5 km en 45:00.*'

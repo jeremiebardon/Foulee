@@ -52,6 +52,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "e2e": "maestro test .maestro",
     "db:generate": "drizzle-kit generate",
     "lint": "expo lint && node --test scripts/check-lint-boundaries.js scripts/check-lint-coverage-ignores.js",
     "dev": "expo start"

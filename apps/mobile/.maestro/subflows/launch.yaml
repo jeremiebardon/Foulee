@@ -1,0 +1,19 @@
+# Starts the app from a known state: clears its data, then launches it with the e2e reset link
+# (src/e2e), which only e2e builds honour. Called with:
+#   LINK   the reset link, e.g. foulee://e2e?seed=demo&signedIn=true
+#   SCREEN the test ID of the screen to wait for
+appId: com.jbardon.foulee
+---
+- clearState
+- openLink: ${LINK}
+# iOS asks once per simulator before an app opens from a link. The system dialog has no test ID.
+- runFlow:
+    when:
+      platform: iOS
+      visible: 'Open'
+    commands:
+      - tapOn: 'Open'
+- extendedWaitUntil:
+    visible:
+      id: ${SCREEN}
+    timeout: 30000

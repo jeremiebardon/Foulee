@@ -1,0 +1,36 @@
+appId: com.jbardon.foulee
+name: Sign in with the mock gateway, then sign out
+tags:
+  - auth
+---
+- runFlow:
+    file: subflows/launch.yaml
+    env:
+      LINK: foulee://e2e
+      SCREEN: login-screen
+- tapOn:
+    id: login-email
+- inputText: coureur@foulee.test
+- tapOn:
+    id: login-request-code
+# The mock shows the code on screen ("Code : 123456"); keep its digits and type them.
+- copyTextFrom:
+    id: login-demo-code
+- tapOn:
+    id: login-code
+- inputText: ${maestro.copiedText.replace(/[^0-9]/g, '')}
+- extendedWaitUntil:
+    visible:
+      id: dashboard-empty
+    timeout: 10000
+# The session is kept across launches.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: dashboard-empty
+    timeout: 30000
+- tapOn:
+    id: sign-out
+- assertVisible:
+    id: login-screen

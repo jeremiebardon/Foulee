@@ -13,7 +13,7 @@ export function WorkoutDetailScreen({ id }: { id: string }) {
   if (!workout) return null; // first live-query tick, or just deleted
   const edit = () => router.push(`/workouts/${id}/edit`);
   return (
-    <Screen>
+    <Screen testID="workout-detail">
       <Stack.Screen options={{ title: workout.name, headerRight: () => <Button icon="create-outline" label="Modifier" variant="ghost" onPress={edit} /> }} />
       <Card>
         <WorkoutSummary workout={workout} />
@@ -24,7 +24,7 @@ export function WorkoutDetailScreen({ id }: { id: string }) {
           isRepeat(item) ? (
             <View key={i} style={s.repeat}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <Txt v="h3" style={{ color: color.accent }}>{item.count} ×</Txt>
+                <Txt testID="workout-detail-repeat-count" v="h3" style={{ color: color.accent }}>{item.count} ×</Txt>
                 <Txt v="muted">{formatTotals(workoutTotals([item]))}</Txt>
               </Row>
               {item.steps.map((step, j) => <StepRow key={j} step={step} />)}
@@ -34,7 +34,7 @@ export function WorkoutDetailScreen({ id }: { id: string }) {
           ),
         )}
       </Card>
-      <Button title="Modifier l’entraînement" icon="create-outline" variant="primary" onPress={edit} />
+      <Button testID="workout-edit" title="Modifier l’entraînement" icon="create-outline" variant="primary" onPress={edit} />
     </Screen>
   );
 }

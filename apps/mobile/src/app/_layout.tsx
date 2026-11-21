@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { Suspense, use } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { databaseReady } from '@/db/client';
+import { e2eReady } from '@/e2e/startup';
 import { AuthProvider, authGateway, useAuth } from '@/features/auth';
 
 // A failed database open or migration lands in Expo Router's error screen, with a retry.
@@ -25,6 +26,8 @@ export default function RootLayout() {
 
 function App() {
   use(databaseReady);
+  // E2E builds only: the reset link the app was launched with, applied before auth reads the session.
+  use(e2eReady);
   useDevTools();
   return (
     <AuthProvider gateway={authGateway()}>

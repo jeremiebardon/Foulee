@@ -17,6 +17,21 @@
       "ios": {
         "simulator": true
       }
+    },
+    "e2e": {
+      "distribution": "internal",
+      "withoutCredentials": true,
+      "environment": "preview",
+      "env": {
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_E2E": "true"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
     }
   }
 }

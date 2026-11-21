@@ -18,7 +18,7 @@ export function CalendarScreen() {
   const [selected, setSelected] = useState(today);
   const [logging, setLogging] = useState<SessionView | null>(null);
 
-  if (!plan) return <Screen><Empty title="Aucun plan" text="Le calendrier affiche les séances du plan sélectionné. Créer un plan dans l’onglet Plans." /></Screen>;
+  if (!plan) return <Screen testID="calendar"><Empty testID="calendar-empty" title="Aucun plan" text="Le calendrier affiche les séances du plan sélectionné. Créer un plan dans l’onglet Plans." /></Screen>;
 
   const m = fromISO(month);
   const shift = (n: number) => setMonth(toISO(new Date(m.getFullYear(), m.getMonth() + n, 1)));
@@ -26,7 +26,7 @@ export function CalendarScreen() {
   const ofDay = (d: ISODate) => views.filter((v) => v.date === d);
 
   return (
-    <Screen>
+    <Screen testID="calendar">
       <PlanPicker />
       <Card style={{ paddingHorizontal: space.sm }}>
         <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
@@ -38,7 +38,8 @@ export function CalendarScreen() {
         <View style={s.grid}>
           {WEEKDAYS.map((d, i) => <Txt key={i} v="label" style={[s.cell, { textAlign: 'center' }]}>{d}</Txt>)}
           {monthGrid(m.getFullYear(), m.getMonth()).map((d) => (
-            <Pressable key={d} accessibilityRole="button" accessibilityLabel={formatLongDate(d)} accessibilityState={{ selected: d === selected }}
+            // E2E flows pick a day by what it holds, since the dates move with the day they run.
+            <Pressable key={d} testID={ofDay(d).some((v) => !v.done) ? 'calendar-day-planned' : 'calendar-day'} accessibilityRole="button" accessibilityLabel={formatLongDate(d)} accessibilityState={{ selected: d === selected }}
               onPress={() => setSelected(d)} style={[s.cell, s.day, inPlan(d) && s.inPlan, d === selected && s.selected]}>
               <Txt style={[s.num, d === today && s.today, d.slice(0, 7) !== month.slice(0, 7) && { opacity: 0.35 }]}>{fromISO(d).getDate()}</Txt>
               <Row style={{ gap: 3, justifyContent: 'center' }}>
@@ -56,20 +57,20 @@ export function CalendarScreen() {
       <Txt v="h2">{formatLongDate(selected)}</Txt>
       {ofDay(selected).length === 0 && <Txt v="muted">{inPlan(selected) ? 'Repos : aucune séance prévue.' : 'En dehors du plan.'}</Txt>}
       {ofDay(selected).map((v) => (
-        <Card key={v.session.id}>
+        <Card key={v.session.id} testID="calendar-session">
           <WorkoutSummary workout={v.workout} link />
           {v.done ? (
             <>
-              <Txt style={{ color: color.ok, fontWeight: '700' }}>
+              <Txt testID="calendar-session-done" style={{ color: color.ok, fontWeight: '700' }}>
                 ✓ Faite : {formatDistance(v.session.doneMeters!)} en {formatClock(v.session.doneSeconds!)} · {formatPace(v.session.doneSeconds! / (v.session.doneMeters! / 1000))}
               </Txt>
               <Row>
-                <Button title="Modifier" onPress={() => setLogging(v)} />
-                <Button title="Marquer non faite" variant="ghost" onPress={() => logRun(v.session.id, null)} />
+                <Button testID="calendar-edit-run" title="Modifier" onPress={() => setLogging(v)} />
+                <Button testID="calendar-unlog-run" title="Marquer non faite" variant="ghost" onPress={() => logRun(v.session.id, null)} />
               </Row>
             </>
           ) : (
-            <Button title="Marquer comme faite" icon="checkmark" variant="primary" onPress={() => setLogging(v)} />
+            <Button testID="calendar-log-run" title="Marquer comme faite" icon="checkmark" variant="primary" onPress={() => setLogging(v)} />
           )}
         </Card>
       ))}
