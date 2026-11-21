@@ -10,7 +10,7 @@
     "start": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest --coverage"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage"
   },
   "dependencies": {
     "@foulee/contracts": "workspace:*",
