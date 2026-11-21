@@ -13,7 +13,9 @@ export type DashboardStats = {
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const inRange = (d: ISODate, from: ISODate, to: ISODate) => d >= from && d <= to;
-const doneMeters = (v: SessionView) => v.session.doneMeters ?? 0;
+// Only read on done sessions, which have both a distance and a time (see toSessionViews).
+const doneMeters = (v: SessionView) => v.session.doneMeters!;
+const doneSeconds = (v: SessionView) => v.session.doneSeconds!;
 
 /**
  * « Planned » comes from the selected plan, « done » from every session
@@ -26,7 +28,7 @@ export function computeStats(all: SessionView[], planId: string | null, today: I
   const thisWeek = (v: SessionView) => inRange(v.date, monday, addDays(monday, 6));
   const recent = done.filter((v) => inRange(v.date, addDays(today, -27), today));
   const meters28 = sum(recent.map(doneMeters));
-  const seconds28 = sum(recent.map((v) => v.session.doneSeconds ?? 0));
+  const seconds28 = sum(recent.map(doneSeconds));
   const due = planned.filter((v) => v.date < today || (v.date === today && v.done));
 
   return {
