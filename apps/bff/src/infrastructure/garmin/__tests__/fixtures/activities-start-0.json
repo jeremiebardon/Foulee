@@ -8,7 +8,6 @@
     },
     "startTimeGMT": "2026-11-19 06:31:12",
     "startTimeLocal": "2026-11-19 07:31:12",
-    "beginTimestamp": 1795069872000,
     "distance": 10012.37,
     "duration": 3005.2,
     "averageHR": 151.6
@@ -22,7 +21,6 @@
     },
     "startTimeGMT": "2026-11-18 16:02:00",
     "startTimeLocal": "2026-11-18 17:02:00",
-    "beginTimestamp": 1795017720000,
     "distance": 30120.5,
     "duration": 4210,
     "averageHR": 128
@@ -36,7 +34,6 @@
     },
     "startTimeGMT": "2026-11-17 18:15:40",
     "startTimeLocal": "2026-11-17 19:15:40",
-    "beginTimestamp": 1794939340000,
     "distance": 8000,
     "duration": 2520.9
   },
@@ -49,7 +46,6 @@
     },
     "startTimeGMT": "2026-11-15 08:00:03",
     "startTimeLocal": "2026-11-15 09:00:03",
-    "beginTimestamp": 1794729603000,
     "distance": 18430.2,
     "duration": 7380.4,
     "averageHR": 144.2
@@ -63,7 +59,6 @@
     },
     "startTimeGMT": "2026-11-13 05:45:00",
     "startTimeLocal": "2026-11-13 06:45:00",
-    "beginTimestamp": 1794548700000,
     "distance": 5010,
     "duration": 1502.3,
     "averageHR": 158

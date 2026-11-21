@@ -96,7 +96,6 @@ function anonymise(pages) {
         },
         startTimeGMT: garminTime(startGmt),
         startTimeLocal: garminTime(parseGarminTime(activity.startTimeLocal) + shift),
-        beginTimestamp: startGmt,
         distance: activity.distance,
         duration: activity.duration,
         averageHR: activity.averageHR,

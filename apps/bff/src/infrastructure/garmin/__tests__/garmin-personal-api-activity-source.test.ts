@@ -93,6 +93,17 @@ describe('GarminPersonalApiActivitySource', () => {
       ]);
     });
 
+    it('returns an Activity once when an upload during the import shifts it onto the next page', async () => {
+      const garmin = new FakeGarmin();
+      // Offsets count from the newest activity: one uploaded mid-import pushes the last of page 1 onto page 2.
+      const [, , , , fifth, ...rest] = garmin.activities;
+      garmin.activities = [...garmin.activities.slice(0, 5), fifth, ...rest];
+
+      const activities = await sourceFor(garmin).listActivitiesSince(undefined);
+
+      expect(activities.map((a) => a.id)).toEqual(['9000000007', '9000000005', '9000000004', '9000000003', '9000000002']);
+    });
+
     it('asks for no start date on a first import', async () => {
       const garmin = new FakeGarmin();
 

@@ -14,7 +14,7 @@ import { garminActivityListSchema, toRunningKind, type GarminActivitySummary } f
  *   token endpoint, `Authorization: ApiKey <key>`, the plain-text JWT it returns, and reusing
  *   that token while more than an hour remains before its `exp`.
  */
-export const GARMIN_PERSONAL_API_BASE_URL = 'https://personal.connectapi.garmin.com';
+const GARMIN_PERSONAL_API_BASE_URL = 'https://personal.connectapi.garmin.com';
 const TOKEN_PATH = '/personalapitoken-service/personal-api/personal-api-key/token';
 const ACTIVITY_LIST_PATH = '/activitylist-service/activities/search/activities';
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -63,37 +63,39 @@ export class GarminPersonalApiActivitySource implements ActivitySource {
 
   /** Running Activities only, whatever else Garmin holds. */
   async listActivitiesSince(since: Date | undefined): Promise<Activity[]> {
-    const activities: Activity[] = [];
-    const session = { token: await this.bearerToken() };
+    // Keyed by id: offsets count from the newest activity, so one uploaded mid-import repeats a run.
+    const activities = new Map<string, Activity>();
+    let token = await this.bearerToken();
     // Stop on an empty page rather than a short one: Garmin does not document a maximum limit.
     for (let start = 0; ; start += this.pageSize) {
-      const page = await this.fetchPage(start, since, session);
-      if (page.length === 0) return activities;
-      for (const summary of page) {
+      const page = await this.fetchPage(start, since, token);
+      if (page.summaries.length === 0) return [...activities.values()];
+      token = page.token;
+      for (const summary of page.summaries) {
         const activity = this.toActivity(summary);
-        if (activity && (since === undefined || activity.startTime.isAfter(since))) activities.push(activity);
+        if (activity && (since === undefined || activity.startTime.isAfter(since))) activities.set(activity.id, activity);
       }
     }
   }
 
-  /** One page of the list. `session.token` is replaced when Garmin refuses it and a new one works. */
+  /** One page of the list, and the token that read it: a new one when Garmin refused `token`. */
   private async fetchPage(
     start: number,
     since: Date | undefined,
-    session: { token: string },
-  ): Promise<GarminActivitySummary[]> {
+    token: string,
+  ): Promise<{ summaries: GarminActivitySummary[]; token: string }> {
     const url = new URL(ACTIVITY_LIST_PATH, GARMIN_PERSONAL_API_BASE_URL);
     url.searchParams.set('start', String(start));
     url.searchParams.set('limit', String(this.pageSize));
     // startDate is an inclusive local date: a day earlier covers every UTC offset, then we filter exactly.
     if (since) url.searchParams.set('startDate', new Date(since.getTime() - DAY_MS).toISOString().slice(0, 10));
 
-    let response = await this.getWithToken(url, session.token);
+    let response = await this.getWithToken(url, token);
     if (isRefusal(response.status)) {
       // A token can be revoked before its `exp`: exchange the key once more before giving up.
       this.token = Promise.resolve(undefined);
-      session.token = await this.bearerToken();
-      response = await this.getWithToken(url, session.token);
+      token = await this.bearerToken();
+      response = await this.getWithToken(url, token);
       if (isRefusal(response.status)) throw new GarminAccessExpiredError();
     }
     if (!response.ok) throw new Error(`Garmin activity list request failed with HTTP ${response.status}`);
@@ -103,7 +105,7 @@ export class GarminPersonalApiActivitySource implements ActivitySource {
       const problems = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
       throw new Error(`Garmin activity list response did not match the Personal API spec. ${problems.join('; ')}`);
     }
-    return parsed.data;
+    return { summaries: parsed.data, token };
   }
 
   private getWithToken(url: URL, token: string): Promise<Response> {

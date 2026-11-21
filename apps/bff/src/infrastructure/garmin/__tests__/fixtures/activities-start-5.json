@@ -8,7 +8,6 @@
     },
     "startTimeGMT": "2026-11-10 12:30:00",
     "startTimeLocal": "2026-11-10 07:30:00",
-    "beginTimestamp": 1794313800000,
     "distance": 12001.4,
     "duration": 3720,
     "averageHR": 149.4
@@ -22,7 +21,6 @@
     },
     "startTimeGMT": "2026-11-09 18:00:00",
     "startTimeLocal": "2026-11-09 13:00:00",
-    "beginTimestamp": 1794247200000,
     "duration": 2700,
     "averageHR": 112
   }
