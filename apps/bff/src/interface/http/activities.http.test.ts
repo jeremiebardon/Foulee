@@ -227,6 +227,24 @@ describe('GET /v1/activities', () => {
       expect(errorBodySchema.parse(res.body).code).toBe('garmin_access_expired');
     });
 
+    it('answers 500 internal_error, not 400, when our own response breaks the contract', async () => {
+      // A positive but absurdly small distance makes the derived pace infinite: the response is invalid.
+      await startWith([
+        Activity.create({
+          id: '1',
+          kind: 'running',
+          startTime: StartTime.of(new Date('2026-11-18T06:30:00Z'), 0),
+          distance: Distance.ofMeters(Number.MIN_VALUE),
+          duration: Duration.ofSeconds(3000),
+        }),
+      ]);
+
+      const res = await authorized();
+
+      expect(res.status).toBe(500);
+      expect(errorBodySchema.parse(res.body)).toEqual({ code: 'internal_error', message: 'Internal server error' });
+    });
+
     it('answers 500 internal_error without leaking the cause', async () => {
       await startWith(new Error('database password is hunter2'));
 

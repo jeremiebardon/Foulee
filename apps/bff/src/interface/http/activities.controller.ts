@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   listActivitiesQuerySchema,
   listActivitiesResponseSchema,
@@ -15,12 +15,17 @@ export class ActivitiesController {
 
   @Get()
   async list(@Query() query: unknown): Promise<ListActivitiesResponse> {
-    // A ZodError here becomes a 400 invalid_request (see ErrorBodyFilter).
-    const { since } = listActivitiesQuerySchema.parse(query);
+    // Only a bad request is the caller's fault (400). A failure validating our own response below is ours (500).
+    const parsedQuery = listActivitiesQuerySchema.safeParse(query);
+    if (!parsedQuery.success) {
+      const problems = parsedQuery.error.issues.map((issue) => `${issue.path.join('.') || 'query'}: ${issue.message}`);
+      throw new BadRequestException(problems.join('; '));
+    }
+    const { since } = parsedQuery.data;
 
     const result = await this.listActivitiesSince.execute({ since: since === undefined ? undefined : new Date(since) });
 
-    // Validate what we send: a mapping bug fails here (500), not on the phone.
+    // Validate what we send: a mapping bug fails here (a logged 500, see ErrorBodyFilter), not on the phone.
     return listActivitiesResponseSchema.parse(toListActivitiesResponse(result));
   }
 }
