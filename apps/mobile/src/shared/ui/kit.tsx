@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack } from 'expo-router';
 import { useState, type ComponentProps, type PropsWithChildren, type ReactNode } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
 import { color, radius, space } from './theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -140,9 +140,8 @@ export const Empty = ({ title, text, action }: { title: string; text: string; ac
   </View>
 );
 
-/** Destructive confirmation. RN Web's Alert has no buttons, so web falls back to window.confirm. */
+/** Destructive confirmation. */
 export function confirm(title: string, message: string, action: string, onConfirm: () => void) {
-  if (Platform.OS === 'web') return window.confirm(`${title}\n\n${message}`) && onConfirm();
   Alert.alert(title, message, [{ text: 'Annuler', style: 'cancel' }, { text: action, style: 'destructive', onPress: onConfirm }]);
 }
 
