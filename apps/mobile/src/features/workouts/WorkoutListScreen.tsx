@@ -6,8 +6,8 @@ import { WorkoutSummary } from './WorkoutSummary';
 export function WorkoutListScreen() {
   const workouts = useWorkouts();
   return (
-    <Screen>
-      <Button title="Nouvel entraînement" icon="add" variant="primary" onPress={() => router.push('/workouts/new')} />
+    <Screen testID="workout-list">
+      <Button testID="workout-new" title="Nouvel entraînement" icon="add" variant="primary" onPress={() => router.push('/workouts/new')} />
       {workouts.length === 0 && (
         <Empty title="Aucun entraînement" text="Un entraînement se compose d’étapes : échauffement, répétitions, récupération, retour au calme." />
       )}

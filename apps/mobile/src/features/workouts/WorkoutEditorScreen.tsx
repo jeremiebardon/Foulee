@@ -48,12 +48,12 @@ function Editor({ initial, isNew }: { initial: Workout; isNew: boolean }) {
     });
 
   return (
-    <Screen>
+    <Screen testID="workout-editor">
       <Stack.Screen options={{ title: isNew ? 'Nouvel entraînement' : draft.name || 'Entraînement' }} />
       <Card>
-        <Field label="Nom" value={draft.name} placeholder="VMA 10 × 400 m" onChangeText={(name) => setDraft({ ...draft, name })} />
+        <Field testID="workout-name" label="Nom" value={draft.name} placeholder="VMA 10 × 400 m" onChangeText={(name) => setDraft({ ...draft, name })} />
         <Txt v="label">Type de séance</Txt>
-        <Chips options={CATEGORY_LABEL} value={draft.category} onChange={(category) => setDraft({ ...draft, category })} />
+        <Chips testID="workout-category" options={CATEGORY_LABEL} value={draft.category} onChange={(category) => setDraft({ ...draft, category })} />
       </Card>
 
       <Txt v="h2">Étapes</Txt>
@@ -65,7 +65,7 @@ function Editor({ initial, isNew }: { initial: Workout; isNew: boolean }) {
           isRepeat(item) ? (
             <View style={{ gap: space.md }}>
               <Txt v="label" style={{ color: color.accent }}>BLOC RÉPÉTÉ</Txt>
-              <Stepper label="Répétitions" value={item.count} onChange={(count) => update({ ...item, count })} />
+              <Stepper testID="workout-repeat-count" label="Répétitions" value={item.count} onChange={(count) => update({ ...item, count })} />
               <EditableList
                 items={item.steps}
                 rev={rev}
@@ -73,7 +73,7 @@ function Editor({ initial, isNew }: { initial: Workout; isNew: boolean }) {
                 onChange={(steps, structural) => update({ ...item, steps }, structural)}
                 render={(step, updateStep) => <StepEditor step={step} onChange={updateStep} />}
               />
-              <Button title="Ajouter une étape au bloc" icon="add" variant="ghost" onPress={() => update({ ...item, steps: [...item.steps, newStep()] }, true)} />
+              <Button testID="workout-repeat-add-step" title="Ajouter une étape au bloc" icon="add" variant="ghost" onPress={() => update({ ...item, steps: [...item.steps, newStep()] }, true)} />
             </View>
           ) : (
             <StepEditor step={item} onChange={update} />
@@ -81,19 +81,19 @@ function Editor({ initial, isNew }: { initial: Workout; isNew: boolean }) {
         }
       />
       <Row>
-        <Button title="Étape" icon="add" onPress={() => setItems([...draft.items, newStep()], true)} />
-        <Button title="Bloc répété" icon="repeat" onPress={() => setItems([...draft.items, newRepeat()], true)} />
+        <Button testID="workout-add-step" title="Étape" icon="add" onPress={() => setItems([...draft.items, newStep()], true)} />
+        <Button testID="workout-add-repeat" title="Bloc répété" icon="repeat" onPress={() => setItems([...draft.items, newRepeat()], true)} />
       </Row>
 
       <Card style={{ borderColor: color.accent }}>
         <Txt v="h2">Aperçu</Txt>
         <WorkoutProfile items={draft.items} />
         <Txt>{describeWorkout(draft.items)}</Txt>
-        <Txt v="big">{formatTotals(workoutTotals(draft.items))}</Txt>
-        {errors.map((e) => <Txt key={e} v="error">{e}</Txt>)}
+        <Txt testID="workout-totals" v="big">{formatTotals(workoutTotals(draft.items))}</Txt>
+        {errors.map((e) => <Txt key={e} testID="workout-error" v="error">{e}</Txt>)}
         <Row>
-          <Button title="Enregistrer" variant="primary" onPress={save} />
-          {!isNew && <Button title="Supprimer" icon="trash-outline" variant="danger" onPress={remove} />}
+          <Button testID="workout-save" title="Enregistrer" variant="primary" onPress={save} />
+          {!isNew && <Button testID="workout-delete" title="Supprimer" icon="trash-outline" variant="danger" onPress={remove} />}
         </Row>
       </Card>
     </Screen>
@@ -126,17 +126,17 @@ function StepEditor({ step, onChange }: { step: Step; onChange(s: Step, structur
     onChange({ ...step, measure: type === 'distance' ? { type, meters: 1000 } : { type, seconds: 300 } }, true);
   return (
     <>
-      <Chips options={KIND_LABEL} value={step.kind} onChange={(kind) => onChange({ ...step, kind })} />
-      <Chips options={{ distance: 'Distance', time: 'Durée' }} value={measure.type} onChange={setType} />
+      <Chips testID="step-kind" options={KIND_LABEL} value={step.kind} onChange={(kind) => onChange({ ...step, kind })} />
+      <Chips testID="step-measure" options={{ distance: 'Distance', time: 'Durée' }} value={measure.type} onChange={setType} />
       <Row style={{ alignItems: 'flex-start' }}>
         {measure.type === 'distance' ? (
-          <ParsedField label="Distance" value={measure.meters} format={formatDistance} parse={parseDistance} invalidText="Ex. : 400 m, 2 km"
+          <ParsedField testID="step-distance" label="Distance" value={measure.meters} format={formatDistance} parse={parseDistance} invalidText="Ex. : 400 m, 2 km"
             onChange={(meters = 0) => onChange({ ...step, measure: { type: 'distance', meters } })} />
         ) : (
-          <ParsedField label="Durée (min:s)" value={measure.seconds} format={formatClock} parse={parseClock} invalidText="Ex. : 1:30, 10:00" keyboardType="numbers-and-punctuation"
+          <ParsedField testID="step-duration" label="Durée (min:s)" value={measure.seconds} format={formatClock} parse={parseClock} invalidText="Ex. : 1:30, 10:00" keyboardType="numbers-and-punctuation"
             onChange={(seconds = 0) => onChange({ ...step, measure: { type: 'time', seconds } })} />
         )}
-        <ParsedField label="Allure cible (/km)" placeholder="libre" value={step.pace} format={formatPaceValue} parse={parsePace} invalidText="Ex. : 4:30" keyboardType="numbers-and-punctuation"
+        <ParsedField testID="step-pace" label="Allure cible (/km)" placeholder="libre" value={step.pace} format={formatPaceValue} parse={parsePace} invalidText="Ex. : 4:30" keyboardType="numbers-and-punctuation"
           onChange={(pace) => onChange({ ...step, pace })} />
       </Row>
     </>

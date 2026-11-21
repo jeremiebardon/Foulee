@@ -18,15 +18,16 @@ export function DashboardScreen() {
   if (!plan) {
     const demo = appConfig().devFeatures;
     return (
-      <Screen>
+      <Screen testID="dashboard">
         <Empty
+          testID="dashboard-empty"
           title="Aucun plan"
           text={demo ? 'Créer un plan, ou charger un exemple pour découvrir l’app.' : 'Créer un plan pour commencer.'}
           action={
             <Row>
               {/* Dev shortcut: the demo plan exists only in the development variant. */}
-              {demo && <Button title="Charger un exemple" variant="primary" onPress={() => seedDemo()} />}
-              <Button title="Créer un plan" variant={demo ? 'secondary' : 'primary'} onPress={() => router.push(`/plans/${createPlan()}/edit`)} />
+              {demo && <Button testID="dashboard-load-demo" title="Charger un exemple" variant="primary" onPress={() => seedDemo()} />}
+              <Button testID="dashboard-create-plan" title="Créer un plan" variant={demo ? 'secondary' : 'primary'} onPress={() => router.push(`/plans/${createPlan()}/edit`)} />
             </Row>
           }
         />
@@ -36,28 +37,28 @@ export function DashboardScreen() {
 
   const nextIn = next ? diffDays(next.date, today) : null;
   return (
-    <Screen>
+    <Screen testID="dashboard">
       <PlanPicker />
       <View style={s.tiles}>
-        <Tile label="Cette semaine" value={formatKm(week.done)} unit={`/ ${formatKm(week.planned, 0)} km`} note={`${week.sessionsDone} séance(s) sur ${week.sessionsPlanned}`} ratio={week.planned ? week.done / week.planned : 0} />
-        <Tile label="28 derniers jours" value={formatKm(last28.meters, 0)} unit="km" note={`${last28.runs} sorties · ${formatDuration(last28.seconds)}`} />
-        <Tile label="Allure moyenne" value={last28.pace ? formatPaceValue(last28.pace) : '—'} unit="/km" note="Sur 28 jours" />
-        <Tile label="Assiduité" value={adherence.due ? String(Math.round((adherence.done / adherence.due) * 100)) : '—'} unit="%" note={`${adherence.done} faites sur ${adherence.due} prévues`} />
+        <Tile testID="dashboard-week" label="Cette semaine" value={formatKm(week.done)} unit={`/ ${formatKm(week.planned, 0)} km`} note={`${week.sessionsDone} séance(s) sur ${week.sessionsPlanned}`} ratio={week.planned ? week.done / week.planned : 0} />
+        <Tile testID="dashboard-last28" label="28 derniers jours" value={formatKm(last28.meters, 0)} unit="km" note={`${last28.runs} sorties · ${formatDuration(last28.seconds)}`} />
+        <Tile testID="dashboard-pace" label="Allure moyenne" value={last28.pace ? formatPaceValue(last28.pace) : '—'} unit="/km" note="Sur 28 jours" />
+        <Tile testID="dashboard-adherence" label="Assiduité" value={adherence.due ? String(Math.round((adherence.done / adherence.due) * 100)) : '—'} unit="%" note={`${adherence.done} faites sur ${adherence.due} prévues`} />
       </View>
 
-      <Card>
+      <Card testID="dashboard-weekly">
         <Txt v="h2">Volume par semaine</Txt>
         <Txt v="muted">Barre pleine : couru · contour : prévu</Txt>
         <WeeklyChart weeks={weekly} />
       </Card>
 
-      <Card>
+      <Card testID="dashboard-next">
         <Txt v="h2">Prochaine séance</Txt>
         {next ? (
           <>
-            <Txt v="label" style={{ color: color.accent }}>{nextIn === 0 ? 'Aujourd’hui' : nextIn === 1 ? 'Demain' : formatLongDate(next.date)}</Txt>
+            <Txt testID="dashboard-next-when" v="label" style={{ color: color.accent }}>{nextIn === 0 ? 'Aujourd’hui' : nextIn === 1 ? 'Demain' : formatLongDate(next.date)}</Txt>
             <WorkoutSummary workout={next.workout} link />
-            <Button title="Ouvrir le calendrier" onPress={() => router.push('/calendar')} />
+            <Button testID="dashboard-open-calendar" title="Ouvrir le calendrier" onPress={() => router.push('/calendar')} />
           </>
         ) : (
           <Txt v="muted">Plus aucune séance à venir dans ce plan.</Txt>
@@ -67,10 +68,10 @@ export function DashboardScreen() {
   );
 }
 
-const Tile = ({ label, value, unit, note, ratio }: { label: string; value: string; unit: string; note: string; ratio?: number }) => (
-  <Card style={s.tile}>
+const Tile = ({ label, value, unit, note, ratio, testID }: { label: string; value: string; unit: string; note: string; ratio?: number; testID: string }) => (
+  <Card testID={testID} style={s.tile}>
     <Txt v="label">{label}</Txt>
-    <Txt v="big">{value}<Txt v="muted"> {unit}</Txt></Txt>
+    <Txt testID={`${testID}-value`} v="big">{value}<Txt v="muted"> {unit}</Txt></Txt>
     {ratio !== undefined && <View style={s.meter}><View style={[s.meterFill, { width: `${Math.min(1, ratio) * 100}%` }]} /></View>}
     <Txt v="muted">{note}</Txt>
   </Card>

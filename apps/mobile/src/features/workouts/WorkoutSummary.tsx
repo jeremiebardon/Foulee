@@ -54,13 +54,13 @@ export function WorkoutSummary({ workout, link }: { workout: Workout; link?: boo
         <CategoryTag category={workout.category} />
         {link && <Txt v="label" style={{ color: color.accent }}>Détail ›</Txt>}
       </Row>
-      <Txt v="h3">{workout.name}</Txt>
+      <Txt testID="workout-summary-name" v="h3">{workout.name}</Txt>
       <WorkoutProfile items={workout.items} />
       <Txt v="muted">{describeWorkout(workout.items)}</Txt>
-      <Txt style={{ fontWeight: '700' }}>{formatTotals(workoutTotals(workout.items))}</Txt>
+      <Txt testID="workout-summary-totals" style={{ fontWeight: '700' }}>{formatTotals(workoutTotals(workout.items))}</Txt>
     </View>
   );
-  return link ? <Link href={`/workouts/${workout.id}`} asChild><Pressable accessibilityRole="button">{body}</Pressable></Link> : body;
+  return link ? <Link href={`/workouts/${workout.id}`} asChild><Pressable testID="workout-summary-link" accessibilityRole="button">{body}</Pressable></Link> : body;
 }
 
 const s = StyleSheet.create({
