@@ -1,0 +1,29 @@
+[
+  {
+    "activityId": 9000000002,
+    "activityType": {
+      "typeId": 1,
+      "typeKey": "running",
+      "parentTypeId": 17
+    },
+    "startTimeGMT": "2026-11-10 12:30:00",
+    "startTimeLocal": "2026-11-10 07:30:00",
+    "beginTimestamp": 1794313800000,
+    "distance": 12001.4,
+    "duration": 3720,
+    "averageHR": 149.4
+  },
+  {
+    "activityId": 9000000001,
+    "activityType": {
+      "typeId": 13,
+      "typeKey": "strength_training",
+      "parentTypeId": 29
+    },
+    "startTimeGMT": "2026-11-09 18:00:00",
+    "startTimeLocal": "2026-11-09 13:00:00",
+    "beginTimestamp": 1794247200000,
+    "duration": 2700,
+    "averageHR": 112
+  }
+]

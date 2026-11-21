@@ -11,7 +11,8 @@
     "start": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
+    "record:garmin-fixtures": "node scripts/record-garmin-fixtures.mjs"
   },
   "dependencies": {
     "@foulee/contracts": "workspace:*",
