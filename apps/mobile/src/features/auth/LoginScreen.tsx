@@ -37,7 +37,7 @@ export function LoginScreen() {
   const verify = (value: string) => run(async () => signIn(await gateway.verifyCode(email, value)));
 
   return (
-    <KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={s.page} behavior={Platform.select({ ios: 'padding' })}>
       <View style={s.hero}>
         <Txt style={s.tagline}>Un plan.{'\n'}Des séances.{'\n'}Un calendrier.</Txt>
       </View>
