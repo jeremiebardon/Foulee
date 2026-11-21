@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import { useAuth } from '@/features/auth/AuthProvider';
+import { useAuth } from '@/features/auth';
 import { Button, headerOptions, type IconName } from '@/shared/ui/kit';
 import { color } from '@/shared/ui/theme';
 

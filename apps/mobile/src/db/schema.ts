@@ -1,5 +1,5 @@
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { WorkoutCategory, WorkoutItem } from '@/features/workouts/workout';
+import type { WorkoutCategory, WorkoutItem } from '@/features/workouts/domain';
 
 // Rows mirror the domain types, so repositories need no mapping layer.
 

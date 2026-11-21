@@ -5,9 +5,8 @@ import { formatDuration, formatKm, formatPaceValue } from '@/shared/lib/format';
 import { Button, Card, Empty, Row, Screen, Txt } from '@/shared/ui/kit';
 import { color, space } from '@/shared/ui/theme';
 import { seedDemo } from '@/db/seed';
-import { createPlan, useSessionViews } from '@/features/plans/plan.repository';
-import { PlanPicker, useSelectedPlan } from '@/features/plans/PlanPicker';
-import { WorkoutSummary } from '@/features/workouts/WorkoutSummary';
+import { createPlan, PlanPicker, useSelectedPlan, useSessionViews } from '@/features/plans';
+import { WorkoutSummary } from '@/features/workouts';
 import { computeStats, niceCeil, type WeekVolume } from './stats';
 
 export function DashboardScreen() {

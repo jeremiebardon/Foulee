@@ -1,7 +1,7 @@
 import { addDays, mondayOf, todayISO } from '@/shared/lib/dates';
 import { newId } from '@/shared/lib/id';
-import { sessionDate, type Plan } from '@/features/plans/plan';
-import { workoutTotals, type Step, type StepKind, type Workout } from '@/features/workouts/workout';
+import { sessionDate, type Plan } from '@/features/plans/domain';
+import { workoutTotals, type Step, type StepKind, type Workout } from '@/features/workouts/domain';
 import { db } from './client';
 import { plans, sessions, workouts } from './schema';
 

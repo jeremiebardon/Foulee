@@ -4,10 +4,8 @@ import { formatLongDate, formatMonth, fromISO, monthGrid, todayISO, toISO, type 
 import { formatClock, formatDistance, formatPace } from '@/shared/lib/format';
 import { Button, Card, Empty, Row, Screen, Txt } from '@/shared/ui/kit';
 import { color, space } from '@/shared/ui/theme';
-import { planEnd, type SessionView } from '@/features/plans/plan';
-import { logRun, useSessionViews } from '@/features/plans/plan.repository';
-import { PlanPicker, useSelectedPlan } from '@/features/plans/PlanPicker';
-import { CATEGORY_COLOR, WorkoutSummary } from '@/features/workouts/WorkoutSummary';
+import { logRun, planEnd, PlanPicker, useSelectedPlan, useSessionViews, type SessionView } from '@/features/plans';
+import { CATEGORY_COLOR, WorkoutSummary } from '@/features/workouts';
 import { LogRunSheet } from './LogRunSheet';
 
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];

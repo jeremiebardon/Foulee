@@ -40,7 +40,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "lint": "expo lint",
+    "lint": "expo lint && node --test scripts/check-lint-boundaries.js",
     "dev": "expo start"
   },
   "private": true

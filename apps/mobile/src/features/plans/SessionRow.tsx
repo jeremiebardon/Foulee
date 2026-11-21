@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Txt } from '@/shared/ui/kit';
 import { color, space } from '@/shared/ui/theme';
-import { CATEGORY_COLOR, formatTotals } from '@/features/workouts/WorkoutSummary';
+import { CATEGORY_COLOR, formatTotals } from '@/features/workouts';
 import type { SessionView } from './plan';
 
 /** One session in a plan: workout name, totals, done mark, and an optional trailing action. */

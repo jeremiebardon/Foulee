@@ -2,8 +2,7 @@ import { Stack } from 'expo-router';
 import { Suspense, use } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { databaseReady } from '@/db/client';
-import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
-import { mockAuthGateway } from '@/features/auth/mockAuthGateway';
+import { AuthProvider, mockAuthGateway, useAuth } from '@/features/auth';
 
 // A failed database open or migration lands in Expo Router's error screen, with a retry.
 export { ErrorBoundary } from 'expo-router';

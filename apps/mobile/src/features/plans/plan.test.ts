@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Workout } from '@/features/workouts/workout';
+import type { Workout } from '@/features/workouts/domain';
 import { copyWeek, normalizeStart, planEnd, sessionDate, toSessionViews, weeklyVolumes, type Plan, type Session } from './plan';
 
 const plan: Plan = { id: 'p', name: 'Test', startDate: normalizeStart('2026-11-12'), weeks: 3, selected: true };

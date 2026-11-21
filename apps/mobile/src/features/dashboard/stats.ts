@@ -1,5 +1,5 @@
 import { addDays, mondayOf, type ISODate } from '@/shared/lib/dates';
-import type { SessionView } from '@/features/plans/plan';
+import type { SessionView } from '@/features/plans/domain';
 
 export type WeekVolume = { start: ISODate; planned: number; done: number; current: boolean };
 
