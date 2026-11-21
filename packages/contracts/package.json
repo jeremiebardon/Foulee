@@ -1,0 +1,44 @@
+{
+  "name": "@foulee/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "zod schemas for the app <-> BFF HTTP API (ADR 0006). API contracts only: no domain types, no Garmin shapes.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --coverage"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@foulee/eslint-config": "workspace:*",
+    "@foulee/tsconfig": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.39.5",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.15",
+    "tsup": "^9.0.0",
+    "typescript": "~6.0.3"
+  }
+}

@@ -42,3 +42,6 @@ yarn-error.*
 
 # Turborepo
 .turbo/
+
+# coverage
+coverage/
