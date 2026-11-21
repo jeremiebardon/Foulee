@@ -90,7 +90,7 @@ function Editor({ plan }: { plan: Plan }) {
         {workouts.length === 0 && <Button title="Créer un entraînement" variant="primary" onPress={() => { setPickDay(null); router.push('/workouts/new'); }} />}
         {workouts.map((w) => (
           <Pressable key={w.id} accessibilityRole="button" style={s.pick}
-            onPress={() => { addSession({ planId: plan.id, workoutId: w.id, week: current, day: pickDay ?? 0 }); setPickDay(null); }}>
+            onPress={() => { addSession({ planId: plan.id, workoutId: w.id, week: current, day: pickDay! }); setPickDay(null); }}>
             <WorkoutSummary workout={w} />
           </Pressable>
         ))}
