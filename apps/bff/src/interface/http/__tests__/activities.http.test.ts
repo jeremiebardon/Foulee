@@ -2,9 +2,10 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { errorBodySchema, listActivitiesResponseSchema } from '@foulee/contracts';
 import request from 'supertest';
-import { ACTIVITY_SOURCE, AppModule } from '../../app.module';
-import type { ActivitySource } from '../../application/activity-source';
-import type { Env } from '../../config/env';
+import { AppModule } from '../../../app.module';
+import { ACTIVITY_SOURCE } from '../../../tokens';
+import type { ActivitySource } from '../../../application/activity-source';
+import type { Env } from '../../../config/env';
 import {
   Activity,
   Distance,
@@ -12,7 +13,7 @@ import {
   GarminAccessExpiredError,
   StartTime,
   type ActivityKind,
-} from '../../domain';
+} from '../../../domain';
 
 const TOKEN = 'a-long-random-bff-access-token';
 const env: Env = { garminPersonalApiKey: 'unused-here', bffAccessToken: TOKEN, port: 0 };

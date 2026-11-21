@@ -6,12 +6,12 @@
     "module": "nodenext",
     "isolatedModules": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "outDir": "dist",
     "rootDir": ".",
     "types": ["node", "jest"],
     "sourceMap": true,
     "noEmit": true
   },
-  "include": ["src", "test", "jest.config.js"]
+  "include": ["src", "jest.config.js"]
 }

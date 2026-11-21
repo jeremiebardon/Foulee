@@ -1,4 +1,4 @@
-import { InMemoryActivitySource, sampleActivities } from './in-memory-activity-source';
+import { InMemoryActivitySource, sampleActivities } from '../in-memory-activity-source';
 
 describe('InMemoryActivitySource', () => {
   it('holds sample Activities of several kinds, so the running filter has something to filter', async () => {

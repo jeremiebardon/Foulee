@@ -1,4 +1,4 @@
-import { errorBodySchema, errorCodeSchema } from './index';
+import { errorBodySchema, errorCodeSchema } from '../index';
 
 describe('errorBodySchema', () => {
   it.each(['unauthorized', 'invalid_request', 'not_found', 'garmin_access_expired', 'internal_error'])(

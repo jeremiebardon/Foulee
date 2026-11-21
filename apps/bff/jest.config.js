@@ -2,13 +2,12 @@
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testRegex: '\\.(test|spec)\\.ts$',
+  // Tests live in a __tests__ folder next to the code they test.
+  testMatch: ['**/__tests__/**/*.test.ts'],
   transform: { '^.+\\.ts$': 'ts-jest' },
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.test.ts', '!src/test-support/**'],
-  // The hexagon's inside is fully covered; the Garmin adapter and the HTTP layer are
-  // tested at their own seams (see ADR 0003 and the spec's Testing Decisions).
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/__tests__/**'],
+  // Every line, branch and function of the BFF is covered (spec #1, Testing Decisions).
   coverageThreshold: {
-    './src/domain/': { branches: 100, functions: 100, lines: 100, statements: 100 },
-    './src/application/': { branches: 100, functions: 100, lines: 100, statements: 100 },
+    global: { branches: 100, functions: 100, lines: 100, statements: 100 },
   },
 };

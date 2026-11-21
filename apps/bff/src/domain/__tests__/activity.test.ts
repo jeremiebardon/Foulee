@@ -1,8 +1,8 @@
-import { Activity, type ActivityProps } from './activity';
-import { InvalidActivityError } from './errors';
-import { ACTIVITY_KINDS, isRunning } from './activity-kind';
-import { Distance, Duration } from './measures';
-import { StartTime } from './start-time';
+import { Activity, type ActivityProps } from '../activity';
+import { InvalidActivityError } from '../errors';
+import { ACTIVITY_KINDS, isRunning } from '../activity-kind';
+import { Distance, Duration } from '../measures';
+import { StartTime } from '../start-time';
 
 function props(overrides: Partial<ActivityProps> = {}): ActivityProps {
   return {

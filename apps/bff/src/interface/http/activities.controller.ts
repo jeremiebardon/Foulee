@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
 import {
   listActivitiesQuerySchema,
   listActivitiesResponseSchema,
@@ -11,14 +11,14 @@ import { BearerTokenGuard } from './bearer-token.guard';
 @Controller('v1/activities')
 @UseGuards(BearerTokenGuard)
 export class ActivitiesController {
-  constructor(private readonly listActivitiesSince: ListActivitiesSince) {}
+  constructor(@Inject(ListActivitiesSince) private readonly listActivitiesSince: ListActivitiesSince) {}
 
   @Get()
   async list(@Query() query: unknown): Promise<ListActivitiesResponse> {
     // Only a bad request is the caller's fault (400). A failure validating our own response below is ours (500).
     const parsedQuery = listActivitiesQuerySchema.safeParse(query);
     if (!parsedQuery.success) {
-      const problems = parsedQuery.error.issues.map((issue) => `${issue.path.join('.') || 'query'}: ${issue.message}`);
+      const problems = parsedQuery.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
       throw new BadRequestException(problems.join('; '));
     }
     const { since } = parsedQuery.data;

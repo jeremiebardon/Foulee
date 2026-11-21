@@ -1,5 +1,5 @@
-import { InvalidActivityError } from './errors';
-import { Distance, Duration, Pace } from './measures';
+import { InvalidActivityError } from '../errors';
+import { Distance, Duration, Pace } from '../measures';
 
 describe('Distance', () => {
   it('holds a positive number of meters', () => {

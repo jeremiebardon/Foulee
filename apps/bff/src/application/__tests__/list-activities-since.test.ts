@@ -5,9 +5,9 @@ import {
   GarminAccessExpiredError,
   StartTime,
   type ActivityKind,
-} from '../domain';
-import { ListActivitiesSince } from './list-activities-since';
-import type { ActivitySource } from './activity-source';
+} from '../../domain';
+import { ListActivitiesSince } from '../list-activities-since';
+import type { ActivitySource } from '../activity-source';
 
 function activity(id: string, startedAt: string, kind: ActivityKind = 'running'): Activity {
   return Activity.create({

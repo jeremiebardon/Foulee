@@ -9,8 +9,6 @@ import { BearerTokenGuard } from './interface/http/bearer-token.guard';
 import { ErrorBodyFilter } from './interface/http/error-body.filter';
 import { ACTIVITY_SOURCE, ENV } from './tokens';
 
-export { ACTIVITY_SOURCE, ENV };
-
 /** Composition root: the only place that knows which adapter backs each port. */
 @Module({})
 export class AppModule {

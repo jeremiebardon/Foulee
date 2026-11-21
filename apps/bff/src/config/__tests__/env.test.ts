@@ -1,4 +1,4 @@
-import { loadEnv } from './env';
+import { loadEnv } from '../env';
 
 describe('loadEnv', () => {
   const TOKEN = 'a'.repeat(32);

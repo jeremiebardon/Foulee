@@ -2,7 +2,7 @@ import {
   activitySummarySchema,
   listActivitiesQuerySchema,
   listActivitiesResponseSchema,
-} from './index';
+} from '../index';
 
 const summary = {
   garminActivityId: '19876543210',
