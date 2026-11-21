@@ -53,7 +53,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "db:generate": "drizzle-kit generate",
-    "lint": "expo lint && node --test scripts/check-lint-boundaries.js",
+    "lint": "expo lint && node --test scripts/check-lint-boundaries.js scripts/check-lint-coverage-ignores.js",
     "dev": "expo start"
   },
   "private": true
