@@ -7,6 +7,13 @@ import { AuthProvider, authGateway, useAuth } from '@/features/auth';
 // A failed database open or migration lands in Expo Router's error screen, with a retry.
 export { ErrorBoundary } from 'expo-router';
 
+// Rozenite and Drizzle Studio, development only. Metro inlines `__DEV__` as false in production
+// bundles and drops this branch with its require, so none of their code ships.
+const useDevTools: () => void = __DEV__
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- a static import would always be bundled
+    require('@/devtools/useDevTools').useDevTools
+  : () => {};
+
 /** Composition root: wait for the database, then auth (adapter chosen here), then routes. */
 export default function RootLayout() {
   return (
@@ -18,6 +25,7 @@ export default function RootLayout() {
 
 function App() {
   use(databaseReady);
+  useDevTools();
   return (
     <AuthProvider gateway={authGateway()}>
       <Routes />

@@ -1,0 +1,40 @@
+# Builds the development variant's dev client on demand, for internal distribution: each build
+# page has an install link and QR code. Start it from the Expo dashboard or, in apps/mobile:
+#   pnpm dlx eas-cli@latest workflow:run .eas/workflows/development-build.yml -F platform=android
+# iOS device builds only install on devices registered with `eas device:create`.
+name: Development build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        description: Platforms to build
+        options:
+          - all
+          - android
+          - ios
+        default: all
+
+jobs:
+  build_android:
+    name: Build Android
+    if: ${{ inputs.platform != 'ios' }}
+    type: build
+    params:
+      platform: android
+      profile: development
+  build_ios_device:
+    name: Build iOS device
+    if: ${{ inputs.platform != 'android' }}
+    type: build
+    params:
+      platform: ios
+      profile: development
+  build_ios_simulator:
+    name: Build iOS simulator
+    if: ${{ inputs.platform != 'android' }}
+    type: build
+    params:
+      platform: ios
+      profile: development-simulator
