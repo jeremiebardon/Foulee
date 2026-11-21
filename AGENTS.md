@@ -29,7 +29,7 @@ pnpm dlx expo-doctor              # diagnose dependency and config issues
 pnpm exec expo install --fix      # fix incompatible package versions
 ```
 
-The BFF (`apps/bff`, NestJS) and `packages/contracts` are not Expo: the Expo rules in this file do not apply to them. Run the BFF locally with `pnpm --filter bff dev` after copying `apps/bff/.env.example` to `apps/bff/.env.local` (git-ignored). Layering is `domain/`, `application/`, `infrastructure/`, `interface/http/`; ESLint forbids `domain/` and `application/` from importing NestJS, infrastructure or the HTTP interface, and `domain/` from importing `application/`. API shapes live only in `packages/contracts` (zod).
+The BFF (`apps/bff`, NestJS) and `packages/contracts` are not Expo: the Expo rules in this file do not apply to them. Run the BFF locally with `pnpm --filter bff dev` after copying `apps/bff/.env.example` to `apps/bff/.env.local` (git-ignored) and replacing the placeholder `BFF_ACCESS_TOKEN` with a real secret of at least 32 characters (the BFF refuses to boot otherwise); it builds `packages/contracts` first (`predev`, and `dependsOn: ["^build"]` for `turbo run dev`), so a fresh clone needs no manual build. Layering is `domain/`, `application/`, `infrastructure/`, `interface/http/`; ESLint forbids `domain/` and `application/` from importing NestJS, infrastructure or the HTTP interface, and `domain/` from importing `application/`. API shapes live only in `packages/contracts` (zod).
 
 Installs are isolated (pnpm's default, supported by Expo since SDK 54), so a native module's peer dependencies must be direct dependencies of `apps/mobile`. Run lint, typecheck and tests through Turbo before declaring any task done.
 
