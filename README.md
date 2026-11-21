@@ -78,4 +78,3 @@ SQLite on the device is the source of truth. Screens read through Drizzle's `use
 
 - **Auth**: write an `AuthGateway` adapter for a real OTP service and swap it in `src/app/_layout.tsx`. Move the session from `expo-sqlite/kv-store` to `expo-secure-store` once it holds a real token.
 - **Sync**: add `updatedAt` and a soft-delete column, then push/pull per table, or plug a sync engine (PowerSync, ElectricSQL) under the same repositories.
-- **Web**: works, but needs `Cross-Origin-Embedder-Policy: credentialless` and `Cross-Origin-Opener-Policy: same-origin` headers in production (already set for dev in `metro.config.js` and for EAS Hosting in `app.json`).

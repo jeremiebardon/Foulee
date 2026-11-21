@@ -19,20 +19,8 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.jeremie_bardon.foulee"
     },
-    "web": {
-      "favicon": "./assets/favicon.png",
-      "output": "single"
-    },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "headers": {
-            "Cross-Origin-Embedder-Policy": "credentialless",
-            "Cross-Origin-Opener-Policy": "same-origin"
-          }
-        }
-      ],
+      "expo-router",
       "expo-sqlite",
       "expo-font"
     ],
