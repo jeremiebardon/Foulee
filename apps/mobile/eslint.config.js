@@ -78,10 +78,24 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
   ];
 });
 
+// App variants (#13): app code reads its environment only through the config accessor.
+// Tests may set the variable the accessor reads, to switch variants.
+const envOnlyThroughAppConfig = {
+  files: ['src/**'],
+  ignores: ['src/shared/config/appConfig.ts', '**/*.test.{ts,tsx}'],
+  rules: {
+    'no-restricted-properties': [
+      'error',
+      { object: 'process', property: 'env', message: "Read variant values through appConfig() from '@/shared/config/appConfig'." },
+    ],
+  },
+};
+
 module.exports = defineConfig([
   expoConfig,
   { ignores: ['src/db/migrations/*'] },
   { files: ['src/**'], rules: restrict(deepImport) },
   ...featureBlocks,
   { files: ['src/shared/**'], rules: restrict(anyFeature) },
+  envOnlyThroughAppConfig,
 ]);

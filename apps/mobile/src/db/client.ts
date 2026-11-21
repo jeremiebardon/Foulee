@@ -1,6 +1,7 @@
 import { drizzle, type ExpoSQLiteDatabase } from 'drizzle-orm/expo-sqlite';
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
 import { openDatabaseAsync } from 'expo-sqlite';
+import { appConfig } from '@/shared/config/appConfig';
 import migrations from './migrations/migrations';
 import * as schema from './schema';
 
@@ -12,7 +13,8 @@ export let db: ExpoSQLiteDatabase<typeof schema>;
  */
 export const databaseReady = (async () => {
   // `enableChangeListener` is what lets Drizzle's useLiveQuery re-run after writes.
-  const sqlite = await openDatabaseAsync('foulee.db', { enableChangeListener: true });
+  // Each variant has its own file, so development never touches production data.
+  const sqlite = await openDatabaseAsync(appConfig().databaseName, { enableChangeListener: true });
   await sqlite.execAsync('PRAGMA foreign_keys = ON;');
   db = drizzle(sqlite, { schema, casing: 'snake_case' });
   await migrate(db, migrations);

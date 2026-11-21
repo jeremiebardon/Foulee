@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { appConfig } from '@/shared/config/appConfig';
 import { diffDays, formatLongDate, formatShortDate, todayISO } from '@/shared/lib/dates';
 import { formatDuration, formatKm, formatPaceValue } from '@/shared/lib/format';
 import { Button, Card, Empty, Row, Screen, Txt } from '@/shared/ui/kit';
@@ -15,15 +16,17 @@ export function DashboardScreen() {
   const { week, last28, adherence, weekly, next } = computeStats(useSessionViews(), plan?.id ?? null, today);
 
   if (!plan) {
+    const demo = appConfig().devFeatures;
     return (
       <Screen>
         <Empty
           title="Aucun plan"
-          text="Créer un plan, ou charger un exemple pour découvrir l’app."
+          text={demo ? 'Créer un plan, ou charger un exemple pour découvrir l’app.' : 'Créer un plan pour commencer.'}
           action={
             <Row>
-              <Button title="Charger un exemple" variant="primary" onPress={() => seedDemo()} />
-              <Button title="Créer un plan" onPress={() => router.push(`/plans/${createPlan()}/edit`)} />
+              {/* Dev shortcut: the demo plan exists only in the development variant. */}
+              {demo && <Button title="Charger un exemple" variant="primary" onPress={() => seedDemo()} />}
+              <Button title="Créer un plan" variant={demo ? 'secondary' : 'primary'} onPress={() => router.push(`/plans/${createPlan()}/edit`)} />
             </Row>
           }
         />

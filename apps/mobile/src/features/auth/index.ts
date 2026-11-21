@@ -2,4 +2,5 @@
 export * from './auth';
 export { AuthProvider, useAuth } from './AuthProvider';
 export { LoginScreen } from './LoginScreen';
-export { mockAuthGateway } from './mockAuthGateway';
+// The mock gateway is not exported: callers get the variant's gateway, mock only in development.
+export { authGateway } from './gateway';
