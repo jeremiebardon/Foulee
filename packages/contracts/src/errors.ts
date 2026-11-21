@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const errorCodeSchema = z.enum([
   'unauthorized',
   'invalid_request',
+  'not_found',
   'garmin_access_expired',
   'internal_error',
 ]);

@@ -235,7 +235,7 @@ describe('GET /v1/activities', () => {
       const res = await request(app.getHttpServer()).get('/v1/nothing').set('Authorization', `Bearer ${TOKEN}`);
 
       expect(res.status).toBe(404);
-      expect(errorBodySchema.parse(res.body).code).toBe('invalid_request');
+      expect(errorBodySchema.parse(res.body).code).toBe('not_found');
     });
 
     it('answers 502 garmin_access_expired when Garmin refuses our access', async () => {
