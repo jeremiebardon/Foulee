@@ -20,6 +20,15 @@ describe('format and parse', () => {
       .toEqual(['400 m', '10,5 km', '52 min', '1 h 05', '52:30', '1:05:00']);
   });
 
+  it('rounds a duration just under the hour up to the next one', () => {
+    // 1 h 59 min 40 s is closer to 2 h than to 1 h 59.
+    expect(formatDuration(7180)).toBe('2 h 00');
+  });
+
+  it('refuses clock minutes or seconds of 60 and more', () => {
+    expect(['52:60', '1:75:00'].map(parseClock)).toEqual([null, null]);
+  });
+
   it('parses distances, paces and clocks', () => {
     expect(['400 m', '400', '2 km', '2,5', '10k', 'x'].map(parseDistance)).toEqual([400, 400, 2000, 2500, 10000, null]);
     expect(['4:30', "4'30", '5', '4:75', '1:00'].map(parsePace)).toEqual([270, 270, 300, null, null]);
