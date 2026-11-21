@@ -5,8 +5,7 @@ import { addDays, DAY_NAMES, diffDays, formatShortDate, mondayOf, todayISO } fro
 import { formatDistance } from '@/shared/lib/format';
 import { Button, Card, confirm, Field, Row, Screen, Sheet, Stepper, Txt } from '@/shared/ui/kit';
 import { color, space } from '@/shared/ui/theme';
-import { useWorkouts } from '@/features/workouts/workout.repository';
-import { WorkoutSummary } from '@/features/workouts/WorkoutSummary';
+import { useWorkouts, WorkoutSummary } from '@/features/workouts';
 import { weeklyVolumes, weekStart, type Plan } from './plan';
 import { addSession, copyPlanWeek, deletePlan, removeSession, selectPlan, updatePlan, usePlans, useSessionViews } from './plan.repository';
 import { VolumeBars } from './PlanListScreen';

@@ -5,7 +5,7 @@ import { db } from '@/db/client';
 import { plans, sessions } from '@/db/schema';
 import { todayISO } from '@/shared/lib/dates';
 import { newId } from '@/shared/lib/id';
-import { useWorkouts } from '@/features/workouts/workout.repository';
+import { useWorkouts } from '@/features/workouts';
 import { copyWeek, normalizeStart, toSessionViews, type Plan, type Session } from './plan';
 
 // ---- Reads -----------------------------------------------------------------

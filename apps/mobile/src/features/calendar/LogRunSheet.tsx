@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { formatClock, parseClock, parseDistance } from '@/shared/lib/format';
 import { Button, Field, Row, Sheet, Txt } from '@/shared/ui/kit';
-import type { SessionView } from '@/features/plans/plan';
-import { logRun } from '@/features/plans/plan.repository';
+import { logRun, type SessionView } from '@/features/plans';
 
 /** Records what was actually run, prefilled with what was planned. */
 export function LogRunSheet({ view, onClose }: { view: SessionView; onClose(): void }) {

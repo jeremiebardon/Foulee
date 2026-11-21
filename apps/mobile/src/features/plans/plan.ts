@@ -1,5 +1,5 @@
 import { addDays, mondayOf, type ISODate } from '@/shared/lib/dates';
-import { workoutTotals, type Totals, type Workout } from '@/features/workouts/workout';
+import { workoutTotals, type Totals, type Workout } from '@/features/workouts/domain';
 
 // ---- Model -----------------------------------------------------------------
 
