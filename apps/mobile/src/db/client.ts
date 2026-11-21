@@ -9,7 +9,6 @@ export let db: ExpoSQLiteDatabase<typeof schema>;
 
 /**
  * Opens and migrates the database once. Awaited by the root layout before any screen renders.
- * Async because on web the SQLite worker loads asynchronously.
  */
 export const databaseReady = (async () => {
   // `enableChangeListener` is what lets Drizzle's useLiveQuery re-run after writes.
