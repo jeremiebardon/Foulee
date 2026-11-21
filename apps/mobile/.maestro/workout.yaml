@@ -1,0 +1,92 @@
+appId: com.jbardon.foulee
+name: Create and edit a workout with a repeat block
+tags:
+  - workouts
+---
+- runFlow:
+    file: subflows/launch.yaml
+    env:
+      LINK: foulee://e2e?signedIn=true
+      SCREEN: dashboard-empty
+- tapOn:
+    id: tab-workouts
+- tapOn:
+    id: workout-new
+
+# Create: a 1 km step, then a repeat block (4 × 400 m + 1 min recovery) raised to 5 repeats.
+- tapOn:
+    id: workout-name
+- inputText: Fractionne e2e
+- hideKeyboard
+- tapOn:
+    id: workout-category-intervals
+- scrollUntilVisible:
+    element:
+      id: workout-add-step
+- tapOn:
+    id: workout-add-step
+- scrollUntilVisible:
+    element:
+      id: workout-add-repeat
+- tapOn:
+    id: workout-add-repeat
+- scrollUntilVisible:
+    element:
+      id: workout-repeat-count-plus
+- tapOn:
+    id: workout-repeat-count-plus
+- assertVisible:
+    id: workout-repeat-count-value
+    text: '5'
+- scrollUntilVisible:
+    element:
+      id: workout-save
+- tapOn:
+    id: workout-save
+
+# Saved: listed, and its detail shows the repeat block.
+- assertVisible:
+    id: workout-summary-name
+    text: Fractionne e2e
+- tapOn:
+    id: workout-summary-link
+- assertVisible:
+    id: workout-detail-repeat-count
+    text: '5 .*'
+
+# Edit: rename it and drop to 3 repeats.
+- scrollUntilVisible:
+    element:
+      id: workout-edit
+- tapOn:
+    id: workout-edit
+- tapOn:
+    id: workout-name
+- eraseText
+- inputText: Fractionne e2e v2
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: workout-repeat-count-minus
+- tapOn:
+    id: workout-repeat-count-minus
+- tapOn:
+    id: workout-repeat-count-minus
+- assertVisible:
+    id: workout-repeat-count-value
+    text: '3'
+- scrollUntilVisible:
+    element:
+      id: workout-save
+- tapOn:
+    id: workout-save
+
+# Back on the detail, which reads the saved workout again.
+- extendedWaitUntil:
+    visible:
+      id: workout-detail-repeat-count
+      text: '3 .*'
+    timeout: 5000
+- assertVisible:
+    id: workout-summary-name
+    text: Fractionne e2e v2
