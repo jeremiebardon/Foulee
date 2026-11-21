@@ -95,6 +95,26 @@ describe('GET /v1/activities', () => {
       expectUnauthorized(await request(app.getHttpServer()).get('/v1/activities').set('Authorization', 'Bearer '));
     });
 
+    it('rejects a bare Bearer scheme with no token at all', async () => {
+      expectUnauthorized(await request(app.getHttpServer()).get('/v1/activities').set('Authorization', 'Bearer'));
+    });
+
+    it('rejects a token with a space inside it', async () => {
+      expectUnauthorized(
+        await request(app.getHttpServer()).get('/v1/activities').set('Authorization', `Bearer ${TOKEN} extra`),
+      );
+    });
+
+    it.each(['bearer', 'BEARER'])('accepts the %s scheme in any case', async (scheme) => {
+      const res = await request(app.getHttpServer()).get('/v1/activities').set('Authorization', `${scheme} ${TOKEN}`);
+      expect(res.status).toBe(200);
+    });
+
+    it('accepts more than one space between the scheme and the token', async () => {
+      const res = await request(app.getHttpServer()).get('/v1/activities').set('Authorization', `Bearer   ${TOKEN}`);
+      expect(res.status).toBe(200);
+    });
+
     it('lets the right token through', async () => {
       expect((await authorized()).status).toBe(200);
     });
