@@ -91,8 +91,36 @@ const envOnlyThroughAppConfig = {
   },
 };
 
+// Coverage (#17, ADR 0003): jest.config.js enforces 100% and lists every exclusion. A hint that
+// opts code out of coverage inline would dodge that list, so every such comment is a lint error.
+// Matches what the coverage tools honour: a comment that opens with `<tool> ignore` for
+// istanbul (Jest's babel coverage), c8, v8 and node:coverage, with any spacing or JSDoc `*`.
+// Checked by scripts/check-lint-coverage-ignores.js.
+const COVERAGE_IGNORE = /^[\s*]*(istanbul|c8|v8|node:coverage)\s+ignore\b/i;
+const coveragePlugin = {
+  rules: {
+    'no-ignore-comments': {
+      meta: {
+        type: 'problem',
+        messages: {
+          ignore: 'Coverage-ignore comments are not allowed: test the code, or add a justified exclusion to jest.config.js (ADR 0003).',
+        },
+        schema: [],
+      },
+      create: (context) => ({
+        Program() {
+          for (const comment of context.sourceCode.getAllComments()) {
+            if (COVERAGE_IGNORE.test(comment.value)) context.report({ loc: comment.loc, messageId: 'ignore' });
+          }
+        },
+      }),
+    },
+  },
+};
+
 module.exports = defineConfig([
   expoConfig,
+  { plugins: { coverage: coveragePlugin }, rules: { 'coverage/no-ignore-comments': 'error' } },
   { ignores: ['src/db/migrations/*'] },
   { files: ['src/**'], rules: restrict(deepImport) },
   ...featureBlocks,
