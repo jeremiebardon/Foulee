@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { describeWorkout, flatten, validateWorkout, workoutTotals, type Workout } from './workout';
 
 const example: Workout = {
