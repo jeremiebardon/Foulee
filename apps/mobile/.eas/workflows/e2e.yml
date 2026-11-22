@@ -2,7 +2,8 @@
 # profile: the production variant with the e2e reset link enabled.
 # Only on pushes to main that touch the app or a workspace package it depends on: a push that
 # only changes apps/bff (or docs) does not start it. Paths are relative to the repository root.
-# It also runs on the Version Packages pull request, so a release is checked before it ships.
+# It also runs on the Version Packages pull request, so a release is checked before it ships. It is
+# not a required GitHub check: docs/release-guide.md ("Releasing", step 3) has the merge gate.
 # A `pull_request` trigger's `branches` filter matches the BASE branch (main for every pull
 # request), so the trigger's `if` picks that pull request by its head branch, the one
 # changesets/action pushes: `changeset-release/main`. Other pull requests do not run it.
