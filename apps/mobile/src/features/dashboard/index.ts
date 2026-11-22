@@ -1,2 +1,2 @@
 // Public entry point of the dashboard feature.
-export { DashboardScreen } from './DashboardScreen';
+export { DashboardScreen } from './screens/DashboardScreen';

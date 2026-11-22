@@ -4,21 +4,23 @@ const { defineConfig } = require('eslint/config');
 const expoConfig = require('@foulee/eslint-config/expo');
 
 /*
- * Feature boundaries (#15). Each folder in src/features is a feature with a flat layout
- * (domain, repository, screens) and a public entry point, its index.ts. A feature whose
- * domain other features' domain code needs also has domain.ts, a pure entry point: index.ts
- * re-exports screens, so importing it would drag React and the database into domain code.
+ * Feature boundaries (#15, #25). Each folder in src/features is a feature, split by role into
+ * folders, in dependency order, and has a public entry point, its index.ts:
+ *   domain/      pure code: types, rules, calculations; its index.ts is a pure entry point, since the
+ *                feature's index.ts re-exports screens and importing it would drag React and the
+ *                database into other features' domain code
+ *   data/        what reaches outside the app: the database (*.repository.ts), the BFF, the secure store
+ *   hooks/       React hooks over data, with no JSX
+ *   components/  views a feature shares with others, or screens compose
+ *   screens/     the screens routes render
  * The rules:
  * - outside a feature, import it only through an entry point (`@/features/plans`,
  *   `@/features/plans/domain`); domain files use only the domain entry point;
- * - inside a feature, import its own files relatively (`./plan`); `../` would leave it
- *   (`../../` from the feature's __tests__ folder);
+ * - inside a feature, a file imports its own folder (`./plan`) and the folders before it in the order
+ *   above (`../domain/plan`), never a later one; no relative import leaves the feature, at any depth;
+ *   index.ts may import any folder;
  * - dependencies point one way: workouts <- plans <- garmin <- calendar, dashboard (FEATURE_DEPS);
- * - domain files (the feature's plain .ts files, except index.ts and the impure modules below)
- *   import no React, React Native, Expo module or database code, and call no network;
- * - impure modules, named for what they reach: `*.repository.ts` reads and writes the database,
- *   `*.client.ts` talks to anything else outside the app (the BFF, the secure store), and a hook
- *   module, `use*.ts`, composes React hooks with no JSX. Screens and components are `.tsx`;
+ * - domain files import no React, React Native, Expo module or database code, and call no network;
  * - shared code imports no feature.
  * Route files in src/app are not exempt: they re-export screens from the entry points.
  * Checked against deliberate violations by __tests__/lint-boundaries.test.js.
@@ -47,23 +49,15 @@ const deepImport = {
   regex: '^@/features/[^/]+/(?!domain$)',
   message: "Import another feature only through its entry point, e.g. '@/features/plans'.",
 };
-const parentImport = {
-  regex: '^\\.\\./',
-  message: "'../' leaves this feature: import other features through their entry point, e.g. '@/features/plans'.",
-};
-const testParentImport = {
-  regex: '^\\.\\./\\.\\./',
-  message: "'../../' leaves this feature: import other features through their entry point, e.g. '@/features/plans'.",
-};
 const impureDomainImport = {
   regex: '^(react|react-native|expo(-[a-z0-9-]+)?|drizzle-orm)(/|$)|^@/db(/|$)',
-  message: 'Domain files stay pure: no React, React Native, Expo module or database. Use a screen, a hook, a repository or a client.',
+  message: 'Domain files stay pure: no React, React Native, Expo module or database. Use a screen, a hook or the data folder.',
 };
 const noNetworkInDomain = {
   'no-restricted-globals': [
     'error',
-    { name: 'fetch', message: 'Domain files stay pure: the network goes through a client (*.client.ts).' },
-    { name: 'XMLHttpRequest', message: 'Domain files stay pure: the network goes through a client (*.client.ts).' },
+    { name: 'fetch', message: 'Domain files stay pure: the network goes through the data folder.' },
+    { name: 'XMLHttpRequest', message: 'Domain files stay pure: the network goes through the data folder.' },
   ],
 };
 const fullEntryFromDomain = {
@@ -77,6 +71,9 @@ const anyFeature = {
 
 const restrict = (...patterns) => ({ 'no-restricted-imports': ['error', { patterns }] });
 
+// Folders of a feature, in dependency order: a file imports its own folder and those before it.
+const ROLES = ['domain', 'data', 'hooks', 'components', 'screens'];
+
 // Later config objects replace earlier options for the same rule, so each block lists every pattern it needs.
 const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) => {
   const forbidden = Object.keys(FEATURE_DEPS).filter((other) => !allowed.includes(other));
@@ -84,19 +81,45 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
     regex: `^@/features/(${forbidden.join('|')})(/domain)?$`,
     message: `${feature} may import ${allowed.length ? `only ${allowed.join(', ')}` : 'no other feature'} (workouts <- plans <- garmin <- calendar, dashboard); its own files are imported relatively.`,
   };
+  // `../` repeated `levels` times: from a role folder `../` is a sibling folder, `../../` is outside the feature.
+  const up = (levels) => `^(\\.\\./){${levels}}`;
+  const leavesFeature = (levels) => ({
+    regex: up(levels),
+    message: "This import leaves the feature: import other features through their entry point, e.g. '@/features/plans'.",
+  });
+  const laterFolder = (levels, later) => ({
+    regex: `${up(levels)}(${later.join('|')})/`,
+    message: `Folders of a feature import only the folders before them (${ROLES.join(' < ')}).`,
+  });
   return [
-    {
-      files: [`src/features/${feature}/**`],
-      ignores: ['**/__tests__/**'],
-      rules: restrict(deepImport, parentImport, forbiddenFeatures),
-    },
-    // Tests sit one level down, in the feature's __tests__ folder: `../` stays inside the feature.
-    { files: [`src/features/${feature}/__tests__/**`], rules: restrict(deepImport, testParentImport, forbiddenFeatures) },
+    // The feature's own files at its root: index.ts, the entry point, may import any folder.
     {
       files: [`src/features/${feature}/*.ts`],
-      ignores: ['**/*.repository.ts', '**/*.client.ts', '**/use*.ts', '**/index.ts'],
-      rules: { ...restrict(deepImport, parentImport, forbiddenFeatures, impureDomainImport, fullEntryFromDomain), ...noNetworkInDomain },
+      rules: restrict(deepImport, forbiddenFeatures, leavesFeature(1)),
     },
+    ...ROLES.flatMap((role, index) => {
+      const later = ROLES.slice(index + 1);
+      // `levels`: how many `../` reach the role folder's parent, i.e. the feature's other folders.
+      const own = (levels) => [
+        deepImport,
+        forbiddenFeatures,
+        leavesFeature(levels + 1),
+        ...(later.length > 0 ? [laterFolder(levels, later)] : []),
+      ];
+      const domainOnly = role === 'domain' ? [impureDomainImport, fullEntryFromDomain] : [];
+      return [
+        {
+          files: [`src/features/${feature}/${role}/**`],
+          ignores: ['**/__tests__/**'],
+          rules: {
+            ...restrict(...own(1), ...domainOnly),
+            ...(role === 'domain' ? noNetworkInDomain : {}),
+          },
+        },
+        // Tests sit one level down, in the folder's __tests__ folder: `../` stays in the folder.
+        { files: [`src/features/${feature}/${role}/__tests__/**`], rules: restrict(...own(2)) },
+      ];
+    }),
   ];
 });
 
