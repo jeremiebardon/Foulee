@@ -101,5 +101,25 @@
         "message"
       ]
     }
+  },
+  "GET /health response": {
+    "direction": "response",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "ok"
+        },
+        "gitSha": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "status",
+        "gitSha"
+      ]
+    }
   }
 }

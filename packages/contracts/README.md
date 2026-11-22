@@ -41,6 +41,6 @@ pnpm --filter @foulee/contracts export:json-schema   # rewrite json-schema/v1.js
 pnpm --filter @foulee/contracts check:compat --base origin/main   # needs dist/: run after the line above
 ```
 
-The package's tests fail while `json-schema/v1.json` is out of date, and while a schema exported from `src/index.ts` is missing from `v1Contract`: register a new endpoint there, with the direction it travels in.
+The package's tests fail while `json-schema/v1.json` is out of date, and while a schema exported from `src/index.ts` is missing from `v1Contract`: register a new endpoint there, with the direction it travels in. The unversioned `GET /health` is registered too: Fly reads it, and its shape is an API contract like the others.
 
 The check reads every schema as the input `parse` accepts (`io: 'input'`), which is what both sides of the wire check.
