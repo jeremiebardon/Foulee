@@ -39,6 +39,16 @@ export function linkCandidates(activity: Activity, activities: Activity[], views
     .sort((a, b) => distance(a) - distance(b) || a.date.localeCompare(b.date));
 }
 
+/**
+ * The Activities that count on their own beside the Sessions shown: an Unplanned Activity, or one
+ * whose Session is not among them (beyond the end of a shortened Plan). A linked Activity is
+ * accounted for by its Session, which holds its distance and duration, so it is never counted twice.
+ */
+export function unaccountedActivities(activities: Activity[], shown: SessionView[]): Activity[] {
+  const shownIds = new Set(shown.map((view) => view.session.id));
+  return activities.filter((a) => a.sessionId === null || !shownIds.has(a.sessionId));
+}
+
 /** The fields of an Activity that linking and unlinking change. */
 type ActivityLink = Pick<Activity, 'sessionId' | 'declinedSessionId' | 'handLoggedMeters' | 'handLoggedSeconds'>;
 /** What was run on a Session, as stored: both set, or both `null` while it is not done. */

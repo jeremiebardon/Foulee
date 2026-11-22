@@ -34,7 +34,7 @@ export const sessions = sqliteTable('sessions', {
   doneSeconds: integer(),
 });
 
-/** Runs imported from Garmin through the BFF (src/features/garmin). */
+/** Activities imported from Garmin through the BFF (src/features/garmin). */
 export const activities = sqliteTable('activities', {
   /** Garmin's activity id: the primary key makes re-importing an Activity a no-op. */
   garminActivityId: text().primaryKey(),

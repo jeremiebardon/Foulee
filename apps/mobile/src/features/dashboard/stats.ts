@@ -1,5 +1,5 @@
 import { addDays, mondayOf, type ISODate } from '@/shared/lib/dates';
-import { activityDate, type Activity } from '@/features/garmin/domain';
+import { activityDate, unaccountedActivities, type Activity } from '@/features/garmin/domain';
 import type { SessionView } from '@/features/plans/domain';
 
 export type WeekVolume = { start: ISODate; planned: number; done: number; current: boolean };
@@ -13,25 +13,18 @@ export type DashboardStats = {
 };
 
 /** Running done: a Session marked done, or an Activity no Session accounts for. */
-type Run = { date: ISODate; meters: number; seconds: number };
+type RunningDone = { date: ISODate; meters: number; seconds: number };
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const inRange = (d: ISODate, from: ISODate, to: ISODate) => d >= from && d <= to;
-const meters = (r: Run) => r.meters;
-const seconds = (r: Run) => r.seconds;
+const meters = (r: RunningDone) => r.meters;
+const seconds = (r: RunningDone) => r.seconds;
 
-/**
- * Every run done, counted once. A linked Activity is already counted by its Session, which holds
- * its distance and duration; any other Activity counts on its own: an Unplanned Activity, or one
- * whose Session no longer shows (beyond the end of a shortened Plan).
- */
-function runsDone(views: SessionView[], activities: Activity[]): Run[] {
-  const shown = new Set(views.map((v) => v.session.id));
+/** All running done, each counted once: the Sessions marked done, then the Activities none of them accounts for. */
+function runningDone(views: SessionView[], activities: Activity[]): RunningDone[] {
   return [
     ...views.flatMap((v) => (v.done ? [{ date: v.date, ...v.done }] : [])),
-    ...activities
-      .filter((a) => a.sessionId === null || !shown.has(a.sessionId))
-      .map((a) => ({ date: activityDate(a), meters: a.distanceMeters, seconds: a.durationSeconds })),
+    ...unaccountedActivities(activities, views).map((a) => ({ date: activityDate(a), meters: a.distanceMeters, seconds: a.durationSeconds })),
   ];
 }
 
@@ -40,7 +33,7 @@ function runsDone(views: SessionView[], activities: Activity[]): Run[] {
  * the plan, and from Garmin Activities no session accounts for.
  */
 export function computeStats(all: SessionView[], planId: string | null, today: ISODate, activities: Activity[] = [], weeks = 8): DashboardStats {
-  const done = runsDone(all, activities);
+  const done = runningDone(all, activities);
   const planned = all.filter((v) => v.plan.id === planId);
   const monday = mondayOf(today);
   const thisWeek = (x: { date: ISODate }) => inRange(x.date, monday, addDays(monday, 6));

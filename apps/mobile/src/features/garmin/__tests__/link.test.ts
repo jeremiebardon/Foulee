@@ -2,7 +2,7 @@ import { toSessionViews } from '@/features/plans/domain';
 import { session } from '@/test/fakeRepositories';
 import { footing, marathon, tenK, vma } from '@/test/fixtures';
 import type { Activity } from '../activity';
-import { linkCandidates, linking, suggestions, unlinking } from '../link';
+import { linkCandidates, linking, suggestions, unaccountedActivities, unlinking } from '../link';
 
 const run = (garminActivityId: string, startTime: string, distanceMeters = 8000, more: Partial<Activity> = {}): Activity => ({
   garminActivityId,
@@ -140,5 +140,17 @@ describe('unlinking an Activity from its Session', () => {
       const { activity } = linking(run('a', '2026-11-19T18:00:00+01:00'), before);
       expect(unlinking({ ...run('a', '2026-11-19T18:00:00+01:00'), ...activity }).session).toEqual({ doneMeters: before.doneMeters, doneSeconds: before.doneSeconds });
     }
+  });
+});
+
+describe('the Activities no shown Session accounts for', () => {
+  const ids = (activities: Activity[]) => unaccountedActivities(activities, views).map((a) => a.garminActivityId);
+
+  it('are the Unplanned Activities: a linked one is accounted for by its Session, which holds its distance and duration', () => {
+    expect(ids([run('unplanned', '2026-11-18T07:00:00+01:00'), run('linked', '2026-11-19T18:00:00+01:00', 8000, { sessionId: 'thu19' })])).toEqual(['unplanned']);
+  });
+
+  it('include an Activity linked to a Session not shown, beyond the end of a shortened Plan', () => {
+    expect(ids([run('orphaned', '2026-11-19T18:00:00+01:00', 8000, { sessionId: 'gone' })])).toEqual(['orphaned']);
   });
 });
