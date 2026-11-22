@@ -18,7 +18,6 @@ export function PlanEditorScreen({ id }: { id: string }) {
 
 function Editor({ plan }: { plan: Plan }) {
   const views = useSessionViews().filter((v) => v.plan.id === plan.id);
-  const workouts = useWorkouts();
   const [week, setWeek] = useState(() => Math.max(0, Math.min(plan.weeks - 1, Math.floor(diffDays(todayISO(), plan.startDate) / 7))));
   const [pickDay, setPickDay] = useState<number | null>(null);
 
@@ -86,16 +85,24 @@ function Editor({ plan }: { plan: Plan }) {
         </View>
       ))}
 
-      <Sheet testID="plan-pick-sheet" visible={pickDay !== null} title={`${DAY_NAMES[pickDay ?? 0]} · semaine ${current + 1}`} onClose={() => setPickDay(null)}>
-        {workouts.length === 0 && <Button testID="plan-pick-create-workout" title="Créer un entraînement" variant="primary" onPress={() => { setPickDay(null); router.push('/workouts/new'); }} />}
-        {workouts.map((w) => (
-          <Pressable key={w.id} testID="plan-pick-workout" accessibilityRole="button" style={s.pick}
-            onPress={() => { addSession({ planId: plan.id, workoutId: w.id, week: current, day: pickDay! }); setPickDay(null); }}>
-            <WorkoutSummary workout={w} />
-          </Pressable>
-        ))}
-      </Sheet>
+      {pickDay !== null && <PickWorkoutSheet plan={plan} week={current} day={pickDay} onClose={() => setPickDay(null)} />}
     </Screen>
+  );
+}
+
+/** Picks the workout to add on one day of the week being edited. */
+function PickWorkoutSheet({ plan, week, day, onClose }: { plan: Plan; week: number; day: number; onClose(): void }) {
+  const workouts = useWorkouts();
+  return (
+    <Sheet testID="plan-pick-sheet" visible title={`${DAY_NAMES[day]} · semaine ${week + 1}`} onClose={onClose}>
+      {workouts.length === 0 && <Button testID="plan-pick-create-workout" title="Créer un entraînement" variant="primary" onPress={() => { onClose(); router.push('/workouts/new'); }} />}
+      {workouts.map((w) => (
+        <Pressable key={w.id} testID="plan-pick-workout" accessibilityRole="button" style={s.pick}
+          onPress={() => { addSession({ planId: plan.id, workoutId: w.id, week, day }); onClose(); }}>
+          <WorkoutSummary workout={w} />
+        </Pressable>
+      ))}
+    </Sheet>
   );
 }
 

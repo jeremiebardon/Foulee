@@ -5,9 +5,9 @@ import { logRun, type SessionView } from '@/features/plans';
 
 /** Records what was actually run, prefilled with what was planned. */
 export function LogRunSheet({ view, onClose }: { view: SessionView; onClose(): void }) {
-  const { session, totals } = view;
-  const [km, setKm] = useState(String(Math.round((session.doneMeters ?? totals.meters) / 10) / 100).replace('.', ','));
-  const [time, setTime] = useState(formatClock(session.doneSeconds ?? totals.seconds));
+  const { session, totals, done } = view;
+  const [km, setKm] = useState(String(Math.round((done ?? totals).meters / 10) / 100).replace('.', ','));
+  const [time, setTime] = useState(formatClock((done ?? totals).seconds));
   const meters = parseDistance(`${km} km`);
   const seconds = parseClock(time);
 

@@ -6,7 +6,7 @@ import { plans, sessions } from '@/db/schema';
 import { todayISO } from '@/shared/lib/dates';
 import { newId } from '@/shared/lib/id';
 import { useWorkouts } from '@/features/workouts';
-import { copyWeek, normalizeStart, toSessionViews, type Plan, type Session } from './plan';
+import { copyWeek, normalizeStart, toSessionViews, type DoneRun, type Plan, type Session } from './plan';
 
 // ---- Reads -----------------------------------------------------------------
 // One live query per table: useLiveQuery only watches a query's main table,
@@ -59,7 +59,7 @@ export const copyPlanWeek = (planId: string, from: number, targets: number[]) =>
   });
 
 /** Records what was actually run; `null` marks the session as not done. */
-export const logRun = (id: string, done: { meters: number; seconds: number } | null) =>
+export const logRun = (id: string, done: DoneRun | null) =>
   db
     .update(sessions)
     .set({ doneMeters: done?.meters ?? null, doneSeconds: done?.seconds ?? null })

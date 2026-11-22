@@ -1,4 +1,4 @@
-import { toSessionViews, type Plan, type Session } from '@/features/plans/domain';
+import { toSessionViews, type DoneRun, type Plan, type Session } from '@/features/plans/domain';
 import type { Workout } from '@/features/workouts/domain';
 
 /**
@@ -36,7 +36,7 @@ export const fakePlanRepository = () => ({
 });
 
 /** A session of plan `planId`, not done unless `done` gives what was run. */
-export const session = (id: string, planId: string, workoutId: string, week: number, day: number, done?: { meters: number; seconds: number }): Session => ({
+export const session = (id: string, planId: string, workoutId: string, week: number, day: number, done?: DoneRun): Session => ({
   id,
   planId,
   workoutId,

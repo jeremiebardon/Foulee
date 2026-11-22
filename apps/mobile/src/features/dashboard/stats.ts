@@ -1,5 +1,5 @@
 import { addDays, mondayOf, type ISODate } from '@/shared/lib/dates';
-import type { SessionView } from '@/features/plans/domain';
+import type { DoneRun, SessionView } from '@/features/plans/domain';
 
 export type WeekVolume = { start: ISODate; planned: number; done: number; current: boolean };
 
@@ -13,16 +13,17 @@ export type DashboardStats = {
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const inRange = (d: ISODate, from: ISODate, to: ISODate) => d >= from && d <= to;
-// Only read on done sessions, which have both a distance and a time (see toSessionViews).
-const doneMeters = (v: SessionView) => v.session.doneMeters!;
-const doneSeconds = (v: SessionView) => v.session.doneSeconds!;
+type DoneView = SessionView & { done: DoneRun };
+const isDone = (v: SessionView): v is DoneView => v.done !== null;
+const doneMeters = (v: DoneView) => v.done.meters;
+const doneSeconds = (v: DoneView) => v.done.seconds;
 
 /**
  * « Planned » comes from the selected plan, « done » from every session
  * marked done, whatever the plan.
  */
 export function computeStats(all: SessionView[], planId: string | null, today: ISODate, weeks = 8): DashboardStats {
-  const done = all.filter((v) => v.done);
+  const done = all.filter(isDone);
   const planned = all.filter((v) => v.plan.id === planId);
   const monday = mondayOf(today);
   const thisWeek = (v: SessionView) => inRange(v.date, monday, addDays(monday, 6));

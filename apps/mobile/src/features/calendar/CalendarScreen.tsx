@@ -62,7 +62,7 @@ export function CalendarScreen() {
           {v.done ? (
             <>
               <Txt testID="calendar-session-done" style={{ color: color.ok, fontWeight: '700' }}>
-                ✓ Faite : {formatDistance(v.session.doneMeters!)} en {formatClock(v.session.doneSeconds!)} · {formatPace(v.session.doneSeconds! / (v.session.doneMeters! / 1000))}
+                ✓ Faite : {formatDistance(v.done.meters)} en {formatClock(v.done.seconds)} · {formatPace(v.done.seconds / (v.done.meters / 1000))}
               </Txt>
               <Row>
                 <Button testID="calendar-edit-run" title="Modifier" onPress={() => setLogging(v)} />

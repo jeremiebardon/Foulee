@@ -12,7 +12,7 @@ export const SessionRow = ({ view, prefix, onPress, action, testID }: { view: Se
     <View style={{ flex: 1, paddingVertical: space.sm }}>
       {prefix && <Txt v="label">{prefix}</Txt>}
       <Txt testID="session-workout-name" style={{ fontWeight: '600' }}>{view.workout.name}</Txt>
-      <Txt v="muted" style={view.done && { color: color.ok, fontWeight: '600' }}>{view.done ? `✓ ${formatTotals({ meters: view.session.doneMeters!, seconds: view.session.doneSeconds!, estimated: false })}` : formatTotals(view.totals)}</Txt>
+      <Txt v="muted" style={view.done && { color: color.ok, fontWeight: '600' }}>{view.done ? `✓ ${formatTotals({ ...view.done, estimated: false })}` : formatTotals(view.totals)}</Txt>
     </View>
     {action}
   </Pressable>
