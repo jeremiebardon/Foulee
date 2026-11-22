@@ -52,6 +52,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-router',
     'expo-sqlite',
     'expo-font',
+    // The BFF access token (src/features/garmin) is kept in the Keychain / Keystore.
+    'expo-secure-store',
     // Daily development runs on a development build. Only the development variant registers the
     // dev launcher's `exp+foulee` scheme, so the two variants never claim the same deep links.
     ['expo-dev-client', { addGeneratedScheme: variant.variant === 'development' }],

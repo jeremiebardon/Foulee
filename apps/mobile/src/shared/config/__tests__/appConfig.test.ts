@@ -1,10 +1,16 @@
 import { appConfig } from '../appConfig';
 
 // Expo inlines these from the env files and the EAS profile; tests set the same variables.
-const original = { variant: process.env.EXPO_PUBLIC_APP_VARIANT, e2e: process.env.EXPO_PUBLIC_E2E };
+const original = { variant: process.env.EXPO_PUBLIC_APP_VARIANT, e2e: process.env.EXPO_PUBLIC_E2E, bffUrl: process.env.EXPO_PUBLIC_BFF_URL };
+// Assigning `undefined` to process.env would store the string "undefined": unset it instead.
+const restore = (name: string, value: string | undefined) => {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+};
 afterEach(() => {
-  process.env.EXPO_PUBLIC_APP_VARIANT = original.variant;
-  process.env.EXPO_PUBLIC_E2E = original.e2e;
+  restore('EXPO_PUBLIC_APP_VARIANT', original.variant);
+  restore('EXPO_PUBLIC_E2E', original.e2e);
+  restore('EXPO_PUBLIC_BFF_URL', original.bffUrl);
 });
 
 const configFor = (variant: 'development' | 'production', e2e?: string) => {
@@ -35,5 +41,24 @@ describe('e2e builds', () => {
   it('never turns development builds into e2e builds, even with the flag', () => {
     expect(configFor('development', 'true')).toMatchObject({ variant: 'development', e2e: false, devFeatures: true });
     expect(configFor('development')).toMatchObject({ e2e: false });
+  });
+});
+
+describe('the BFF URL', () => {
+  const bffUrlFrom = (raw: string | undefined) => {
+    if (raw === undefined) delete process.env.EXPO_PUBLIC_BFF_URL;
+    else process.env.EXPO_PUBLIC_BFF_URL = raw;
+    return appConfig().bffUrl;
+  };
+
+  it('comes from the variant env file, without a trailing slash', () => {
+    expect(bffUrlFrom('http://localhost:3000')).toBe('http://localhost:3000');
+    expect(bffUrlFrom('https://foulee-bff.fly.dev/')).toBe('https://foulee-bff.fly.dev');
+  });
+
+  it('is missing when the env file leaves it unset or empty, which hides the Garmin import', () => {
+    expect(bffUrlFrom(undefined)).toBeNull();
+    expect(bffUrlFrom('')).toBeNull();
+    expect(bffUrlFrom('   ')).toBeNull();
   });
 });

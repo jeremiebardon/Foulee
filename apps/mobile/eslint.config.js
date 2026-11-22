@@ -13,7 +13,7 @@ const expoConfig = require('@foulee/eslint-config/expo');
  *   `@/features/plans/domain`); domain files use only the domain entry point;
  * - inside a feature, import its own files relatively (`./plan`); `../` would leave it
  *   (`../../` from the feature's __tests__ folder);
- * - dependencies point one way: workouts <- plans <- calendar, dashboard (FEATURE_DEPS);
+ * - dependencies point one way: workouts <- plans <- garmin <- calendar, dashboard (FEATURE_DEPS);
  * - domain files (the feature's plain .ts files, except repositories and index.ts)
  *   import no React, React Native or database code;
  * - shared code imports no feature.
@@ -25,8 +25,9 @@ const expoConfig = require('@foulee/eslint-config/expo');
 const FEATURE_DEPS = {
   workouts: [],
   plans: ['workouts'],
-  calendar: ['plans', 'workouts'],
-  dashboard: ['plans', 'workouts'],
+  garmin: ['plans', 'workouts'],
+  calendar: ['garmin', 'plans', 'workouts'],
+  dashboard: ['garmin', 'plans', 'workouts'],
   auth: [],
 };
 
@@ -71,7 +72,7 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
   const forbidden = Object.keys(FEATURE_DEPS).filter((other) => !allowed.includes(other));
   const forbiddenFeatures = {
     regex: `^@/features/(${forbidden.join('|')})(/domain)?$`,
-    message: `${feature} may import ${allowed.length ? `only ${allowed.join(', ')}` : 'no other feature'} (workouts <- plans <- calendar, dashboard); its own files are imported relatively.`,
+    message: `${feature} may import ${allowed.length ? `only ${allowed.join(', ')}` : 'no other feature'} (workouts <- plans <- garmin <- calendar, dashboard); its own files are imported relatively.`,
   };
   return [
     {

@@ -6,6 +6,12 @@ export type AppConfig = VariantConfig & {
    * the dev shortcuts on, since the Maestro flows sign in with the mock and load the demo plan.
    */
   e2e: boolean;
+  /**
+   * Base URL of the BFF the Garmin import talks to, without a trailing slash: the local BFF in
+   * .env.development, the deployed one in .env.production. `null` when the env file leaves it
+   * empty, which hides the Garmin import.
+   */
+  bffUrl: string | null;
 };
 
 /**
@@ -18,5 +24,6 @@ export const appConfig = (): AppConfig => {
   const variant = resolveVariant(process.env.EXPO_PUBLIC_APP_VARIANT);
   // Only the e2e profile sets EXPO_PUBLIC_E2E, and only a production-variant build honours it.
   const e2e = variant.variant === 'production' && process.env.EXPO_PUBLIC_E2E === 'true';
-  return { ...variant, e2e, devFeatures: variant.devFeatures || e2e };
+  const bffUrl = process.env.EXPO_PUBLIC_BFF_URL?.trim().replace(/\/+$/, '') || null;
+  return { ...variant, e2e, devFeatures: variant.devFeatures || e2e, bffUrl };
 };
