@@ -10,12 +10,19 @@ const envSchema = z.object({
     .min(32, 'must be at least 32 characters')
     .refine((token) => token !== BFF_ACCESS_TOKEN_PLACEHOLDER, 'is still the .env.example placeholder, set a real secret'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  // Baked into the image at build time (Dockerfile `ARG GIT_SHA`); unset in local development.
+  GIT_SHA: z
+    .string()
+    .optional()
+    .transform((sha) => sha || 'unknown'),
 });
 
 export interface Env {
   garminPersonalApiKey: string;
   bffAccessToken: string;
   port: number;
+  /** The commit the running build was made from, or `unknown`. Reported by `GET /health`. */
+  gitSha: string;
 }
 
 /**
@@ -32,5 +39,6 @@ export function loadEnv(raw: Record<string, string | undefined>): Env {
     garminPersonalApiKey: parsed.data.GARMIN_PERSONAL_API_KEY,
     bffAccessToken: parsed.data.BFF_ACCESS_TOKEN,
     port: parsed.data.PORT,
+    gitSha: parsed.data.GIT_SHA,
   };
 }

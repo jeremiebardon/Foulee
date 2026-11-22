@@ -6,6 +6,7 @@ import { formatDuration, formatKm, formatPaceValue } from '@/shared/lib/format';
 import { Button, Card, Empty, Row, Screen, Txt } from '@/shared/ui/kit';
 import { color, space } from '@/shared/ui/theme';
 import { seedDemo } from '@/db/seed';
+import { GarminImportLink, useActivities } from '@/features/garmin';
 import { createPlan, PlanPicker, useSelectedPlan, useSessionViews } from '@/features/plans';
 import { WorkoutSummary } from '@/features/workouts';
 import { computeStats, niceCeil, type WeekVolume } from './stats';
@@ -13,12 +14,13 @@ import { computeStats, niceCeil, type WeekVolume } from './stats';
 export function DashboardScreen() {
   const plan = useSelectedPlan();
   const today = todayISO();
-  const { week, last28, adherence, weekly, next } = computeStats(useSessionViews(), plan?.id ?? null, today);
+  const { week, last28, adherence, weekly, next } = computeStats(useSessionViews(), plan?.id ?? null, today, useActivities());
 
   if (!plan) {
     const demo = appConfig().devFeatures;
     return (
       <Screen testID="dashboard">
+        <GarminImportLink />
         <Empty
           testID="dashboard-empty"
           title="Aucun plan"
@@ -39,6 +41,7 @@ export function DashboardScreen() {
   return (
     <Screen testID="dashboard">
       <PlanPicker />
+      <GarminImportLink />
       <View style={s.tiles}>
         <Tile testID="dashboard-week" label="Cette semaine" value={formatKm(week.done)} unit={`/ ${formatKm(week.planned, 0)} km`} note={`${week.sessionsDone} séance(s) sur ${week.sessionsPlanned}`} ratio={week.planned ? week.done / week.planned : 0} />
         <Tile testID="dashboard-last28" label="28 derniers jours" value={formatKm(last28.meters, 0)} unit="km" note={`${last28.runs} sorties · ${formatDuration(last28.seconds)}`} />

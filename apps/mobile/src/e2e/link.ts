@@ -1,11 +1,19 @@
 /**
- * The e2e reset link, `foulee://e2e?seed=demo&signedIn=true`: Maestro flows open it to start
- * from a known state. Pure, so the gating is unit-tested; ./startup applies the state.
+ * The e2e reset link, `foulee://e2e?seed=demo&signedIn=true&bff=stub`: Maestro flows open it to
+ * start from a known state. Pure, so the gating is unit-tested; ./startup applies the state.
  */
 export type E2ESeed = 'empty' | 'demo';
-export type E2EState = { seed: E2ESeed; signedIn: boolean };
+/** `stub`: the Garmin import is set up and answered by the in-app BFF stub (./bffStub). */
+export type E2EBff = 'none' | 'stub';
+export type E2EState = { seed: E2ESeed; signedIn: boolean; bff: E2EBff };
 
 const SEEDS: readonly E2ESeed[] = ['empty', 'demo'];
+const BFFS: readonly E2EBff[] = ['none', 'stub'];
+
+function oneOf<T extends string>(what: string, value: string, allowed: readonly T[]): T {
+  if (!allowed.includes(value as T)) throw new Error(`Unknown e2e ${what} "${value}": use ${allowed.join(' or ')}.`);
+  return value as T;
+}
 
 // Optional scheme and slashes, then the `e2e` path, then an optional query.
 const E2E_LINK = /^(?:[a-z][a-z0-9+.-]*:)?\/*e2e\/?(?:\?(.*))?$/i;
@@ -27,9 +35,11 @@ export function e2eStateFromLink(url: string | null | undefined, enabled: boolea
         return [key, value];
       }),
   );
-  const seed = params.get('seed') ?? 'empty';
-  if (!SEEDS.includes(seed as E2ESeed)) throw new Error(`Unknown e2e seed "${seed}": use ${SEEDS.join(' or ')}.`);
-  return { seed: seed as E2ESeed, signedIn: params.get('signedIn') === 'true' };
+  return {
+    seed: oneOf('seed', params.get('seed') ?? 'empty', SEEDS),
+    signedIn: params.get('signedIn') === 'true',
+    bff: oneOf('BFF', params.get('bff') ?? 'none', BFFS),
+  };
 }
 
 /**

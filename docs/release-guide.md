@@ -1,6 +1,6 @@
 # Release guide
 
-This guide covers the one-time GitHub, Expo and store setup, development builds, end-to-end tests, the PR checks and the day-to-day release flow (spec issue #9). Agents never create the remote repository, accounts or tokens; you do these steps yourself.
+This guide covers the one-time GitHub, Expo and store setup, development builds, end-to-end tests, the PR checks and the day-to-day release flow (spec issue #9), and the BFF on Fly.io (spec issue #1). Agents never create the remote repository, accounts, apps, keys or tokens; you do these steps yourself.
 
 ## One-time GitHub setup
 
@@ -61,7 +61,7 @@ Daily work runs on a development build (the `development` variant with `expo-dev
 
 ## End-to-end tests (Maestro)
 
-The Maestro flows in `apps/mobile/.maestro/` (sign in, workouts, plans, logging a run, dashboard, demo plan) run against an **e2e build**: the production variant (`APP_VARIANT=production`) with `EXPO_PUBLIC_E2E=true`. Only such a build honours the reset link `foulee://e2e?seed=empty|demo&signedIn=true` that each flow opens after clearing the app's data, and it turns the dev shortcuts on (mock sign-in, demo plan). Development builds and store builds ignore the link. Flows select elements by `testID` only.
+The Maestro flows in `apps/mobile/.maestro/` (sign in, workouts, plans, logging a run, dashboard, demo plan, linking a Garmin Activity) run against an **e2e build**: the production variant (`APP_VARIANT=production`) with `EXPO_PUBLIC_E2E=true`. Only such a build honours the reset link `foulee://e2e?seed=empty|demo&signedIn=true&bff=stub` that each flow opens after clearing the app's data, and it turns the dev shortcuts on (mock sign-in, demo plan). With `bff=stub`, the Garmin import is set up and answered inside the app by a BFF stub (`src/e2e/bffStub.ts`, one run on the day of the test), so no flow needs a running BFF or Garmin. Development builds and store builds ignore the link. Flows select elements by `testID` only.
 
 The e2e flag can never ship. `app.config.ts` throws when `EXPO_PUBLIC_E2E=true` is evaluated under any EAS build profile other than `e2e` (EAS sets `EAS_BUILD_PROFILE` on its build workers), so a `production` or `development` build that picks it up fails. An update has no build profile, so the release workflow runs the same check as the `production` profile before each update (its `before_update` hook). Local builds have no profile and are not checked, which keeps the local e2e build below working.
 
@@ -83,7 +83,7 @@ The e2e flag can never ship. `app.config.ts` throws when `EXPO_PUBLIC_E2E=true` 
 `.github/workflows/pr-checks.yml` runs on every pull request and every push to `main`:
 
 1. Installs with `pnpm install --frozen-lockfile` (pnpm store cached).
-2. Asks Turbo which projects are affected relative to the base branch (`turbo ls --affected`).
+2. Asks Turbo which projects are affected relative to the base branch (`turbo ls --affected`, through `packages/release-tools/bin/affected.js`, which the BFF deploy shares).
 3. Runs `expo-doctor` in `apps/mobile` only when `mobile` is affected.
 4. Runs `turbo run lint typecheck test --affected`.
 5. On pull requests, runs the **changeset check** (`packages/release-tools/bin/check-changeset.js`): it fails when the pull request changes anything under `apps/mobile` or `packages/contracts` (the app bundles the contracts) without adding a file to `.changeset/`. Then `changeset status` validates the changesets themselves. The Version Packages pull request is exempt, since it consumes the changesets.
@@ -134,3 +134,88 @@ Releasing means merging a pull request. Changesets versions one package, the app
 Follow a release on expo.dev → the project → Workflows. To run a release again (for example after a failed submit), start it from there or with `eas workflow:run .eas/workflows/release.yml --ref vX.Y.Z`. If a store build was made but never submitted, submit it (`eas submit --platform <platform> --id <build-id>`) before the next release: a later JavaScript-only release would otherwise update a binary nobody has.
 
 **Why the tag starts EAS, and not GitHub.** EAS Workflows can start on a tag push (`on: push: tags`), through the GitHub connection, and then run from that exact commit. The alternative, a GitHub Actions step calling `eas workflow:run` with `EXPO_TOKEN`, would put an Expo token in GitHub and add EAS CLI to the runner, for the same result. With the tag trigger, GitHub holds no release credential at all, a release can be re-run from expo.dev or by tag, and the GitHub workflow only does what changesets needs (version, tag, GitHub release).
+
+## The BFF on Fly.io
+
+The BFF (`apps/bff`) runs as one small Fly.io machine, `https://foulee-bff.fly.dev`, and deploys itself from `main`. Production app builds point at it: `EXPO_PUBLIC_BFF_URL` in `apps/mobile/.env.production`. It has no staging environment, no changesets and no version number: the commit is its version.
+
+Secrets are split on purpose. **Fly** holds the two the BFF reads, `GARMIN_PERSONAL_API_KEY` and `BFF_ACCESS_TOKEN`. **GitHub** holds one, `FLY_API_TOKEN`, which can deploy the app and do nothing else. Neither secret of the BFF is ever in GitHub, in the image or in the repository.
+
+### One-time BFF setup
+
+Install `flyctl` (<https://fly.io/docs/flyctl/install/>) and run the commands from the repository root.
+
+1. **Create a Fly.io account** at <https://fly.io/app/sign-up> (Fly asks for a payment card), then **log in**: `fly auth login`. Check it with `fly auth whoami`.
+2. **Create the app**, without deploying anything:
+
+   ```bash
+   fly apps create foulee-bff
+   ```
+
+   Do not run `fly launch`: it would rewrite `apps/bff/fly.toml` and generate its own Dockerfile. If the name `foulee-bff` is taken, pick another and change it in two places in one commit: `app` in `apps/bff/fly.toml` and `EXPO_PUBLIC_BFF_URL` in `apps/mobile/.env.production` (`https://<name>.fly.dev`). The deploy workflow reads the name from `fly.toml`.
+3. **Create the Garmin Personal API Key**: Garmin Connect → Settings → **Personal API token** (<https://connect.garmin.com/app/settings/personalApiToken>). Choose its lifetime (30 days to one year; the longest means the fewest rotations) and copy the key. Garmin shows it once. Note its expiry date in your calendar, a week early.
+4. **Generate the BFF access token**, the shared secret the app sends as `Authorization: Bearer <token>` (at least 32 characters):
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+   Keep it in your password manager: you paste it into the app's Settings once per device.
+5. **Store both as Fly secrets.** `--stage` stores them without deploying (there is nothing to deploy yet). Start the line with a space, or clear it from your shell history afterwards:
+
+   ```bash
+    fly secrets set --app foulee-bff --stage GARMIN_PERSONAL_API_KEY='<key from step 3>' BFF_ACCESS_TOKEN='<token from step 4>'
+   fly secrets list --app foulee-bff   # names and digests only, never values
+   ```
+
+6. **Create the deploy token for GitHub**, limited to this app, and add it as the repository **secret** `FLY_API_TOKEN` (Settings → Secrets and variables → Actions → New repository secret). Copy the whole output, including the `FlyV1 ` prefix and its space. One year is a reasonable expiry; see "Rotating secrets".
+
+   ```bash
+   fly tokens create deploy --app foulee-bff --name github-actions --expiry 8760h
+   ```
+
+7. **Deploy once**: GitHub → Actions → **Deploy BFF** → Run workflow on `main`. A run started by hand deploys whatever changed.
+8. **Check it**:
+
+   ```bash
+   curl https://foulee-bff.fly.dev/health        # {"status":"ok","gitSha":"<the commit of main>"}
+   curl -i https://foulee-bff.fly.dev/v1/activities                                     # 401 unauthorized
+   curl -H "Authorization: Bearer <token from step 4>" https://foulee-bff.fly.dev/v1/activities   # your runs
+   fly status --app foulee-bff                   # one machine
+   ```
+
+   A `502` with `garmin_access_expired` on the last call means Garmin refused the key: check step 3 and 5.
+
+### How the BFF deploys
+
+`.github/workflows/deploy-bff.yml` runs on every push to `main`:
+
+1. It asks Turbo whether the BFF is affected compared with the previous tip of `main` (`turbo ls --affected` through `packages/release-tools/bin/affected.js`, the same detection as the PR check). It is when the push changes `apps/bff`, a workspace package the BFF depends on (`packages/contracts`, the shared config), the BFF's dependencies in `pnpm-lock.yaml`, or a root file Turbo treats as global (`turbo.json`, the root `package.json`). A push that changes only `apps/mobile`, docs or other workflows deploys nothing; the job still runs and says so.
+2. It runs `pnpm turbo prune bff --docker`, which writes `out/`: the BFF and the packages it depends on, a pruned lockfile, and nothing of the mobile app.
+3. `fly deploy` builds `apps/bff/Dockerfile` on Fly's remote builder with `out/` as build context, tags the image with the commit (`registry.fly.io/foulee-bff:<sha>`), bakes the same SHA into the image (`GIT_SHA`), and replaces the machine. The deploy waits for the new machine to pass its health check (`GET /health`, in `fly.toml`) and fails if it does not.
+4. It calls `https://foulee-bff.fly.dev/health` until it reports the pushed commit, and fails otherwise.
+
+**Which commit is running?** `curl https://foulee-bff.fly.dev/health` returns `gitSha`; `fly releases --app foulee-bff --image` lists each release with its image tag. To roll back, run the workflow by hand on an older commit (Run workflow → pick a branch or tag at that commit), or redeploy a previous image: `fly deploy --app foulee-bff --config apps/bff/fly.toml --image registry.fly.io/foulee-bff:<sha>`.
+
+The machine stops when idle and Fly's proxy starts it on the next request, so the first import after a quiet spell takes about a second longer.
+
+**Build and run the image locally** (Docker running), with dummy secrets:
+
+```bash
+pnpm turbo prune bff --docker
+docker build -f apps/bff/Dockerfile --build-arg GIT_SHA="$(git rev-parse HEAD)" -t foulee-bff:local out
+docker run --rm -p 3000:3000 -e GARMIN_PERSONAL_API_KEY=dummy -e BFF_ACCESS_TOKEN="$(node -e "console.log('x'.repeat(32))")" foulee-bff:local
+curl http://localhost:3000/health
+```
+
+Without the two variables the container exits at once, naming what is missing. For day-to-day development, run the BFF without Docker (`pnpm --filter bff dev`, see `AGENTS.md`).
+
+### Rotating secrets
+
+- **Garmin Personal API Key** (expires after 30 days to one year): before it expires, create a new key in Garmin Connect (setup step 3), then `fly secrets set --app foulee-bff GARMIN_PERSONAL_API_KEY='<new key>'`. Without `--stage`, Fly restarts the machine with the new value; the BFF keeps its Garmin token in memory only, so it uses the new key from the next import. Then delete the old key in Garmin Connect. Nothing changes in the app.
+- **BFF access token**: generate a new one (setup step 4), `fly secrets set --app foulee-bff BFF_ACCESS_TOKEN='<new token>'`, then paste it into the app's Settings on each device. Until you do, the app's import answers `unauthorized`.
+- **`FLY_API_TOKEN`** (expires after the `--expiry` you chose): create a new deploy token (setup step 6), replace the GitHub secret, then revoke the old one: `fly tokens list --app foulee-bff` and `fly tokens revoke <id>`. Revoke it at once if it may have leaked: whoever holds it can deploy their own code to the app, and that code would see the Fly secrets.
+
+### What `garmin_access_expired` means
+
+The BFF answers `502` with the error code `garmin_access_expired`, and the app tells you your Garmin access has expired, when Garmin refuses the Personal API Key (`401` or `403` from Garmin's token endpoint or activity list). The key has expired, or was deleted or revoked in Garmin Connect. Nothing is wrong with the app, the BFF or the BFF access token, and retrying does not help: create a new key and store it, as in "Rotating secrets". Any other Garmin failure (Garmin down, a timeout) is a different error and is worth retrying later.

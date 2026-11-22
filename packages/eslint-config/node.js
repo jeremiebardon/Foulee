@@ -5,7 +5,7 @@ const tseslint = require('typescript-eslint');
 const testLocation = require('./test-location');
 
 module.exports = [
-  { ignores: ['dist/**', 'coverage/**', '.turbo/**'] },
+  { ignores: ['dist/**', 'coverage/**', '.turbo/**', '**/*.bundled_*'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

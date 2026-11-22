@@ -24,7 +24,7 @@ Route files stay excluded on one condition: they only compose. A route re-export
 Some checks are not Jest tests and have no coverage threshold. They run with `node --test`:
 
 - `apps/mobile/__tests__/*.test.js`, run by `pnpm lint`. These self-tests prove that the lint rules and the app config still do their job. They are tests themselves.
-- `packages/release-tools`, run by its `test` task. It is CI tooling (the changeset check and the release tag), not app code, and its pure modules are unit-tested there.
+- `packages/release-tools`, run by its `test` task. It is CI tooling (the affected packages, the changeset check and the release tag), not app code, and its pure modules are unit-tested there.
 
 ## Addendum: where tests live
 

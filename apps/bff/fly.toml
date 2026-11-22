@@ -1,0 +1,33 @@
+# The BFF on Fly.io (https://docs.fly.io/reference/configuration/). Deployed by
+# .github/workflows/deploy-bff.yml on every push to main that affects the BFF; the one-time setup
+# (account, app, secrets, deploy token) is in docs/release-guide.md, "One-time BFF setup".
+# GARMIN_PERSONAL_API_KEY and BFF_ACCESS_TOKEN are Fly secrets (`fly secrets set`), never set here.
+
+# The app name is also the hostname, https://foulee-bff.fly.dev, which apps/mobile/.env.production
+# points at (EXPO_PUBLIC_BFF_URL). Rename both together.
+app = "foulee-bff"
+primary_region = "cdg"
+
+# No [build] section: the image is built from apps/bff/Dockerfile with the output of
+# `turbo prune bff --docker` as build context, which the workflow passes to `fly deploy`.
+
+[http_service]
+  internal_port = 3000 # PORT in the Dockerfile
+  force_https = true
+  # One user, a few requests a day: the machine stops when idle and Fly's proxy starts it on the
+  # next request (a cold start of about a second).
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/health"
+
+# One small machine (the workflow deploys with --ha=false so Fly does not add a spare).
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

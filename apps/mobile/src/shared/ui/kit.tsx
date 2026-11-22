@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack } from 'expo-router';
 import { useState, type ComponentProps, type PropsWithChildren, type ReactNode } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewProps, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
 import { color, radius, space } from './theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -19,8 +19,9 @@ export const ListStack = ({ title }: { title: string }) => (
 
 // `testID` props are the Maestro seam: e2e flows select elements by test ID only, never by copy.
 
-export const Screen = ({ children, testID }: PropsWithChildren<{ testID?: string }>) => (
-  <ScrollView testID={testID} style={s.screen} contentContainerStyle={s.screenContent} keyboardShouldPersistTaps="handled">
+/** With `refreshControl`, pulling the screen down refreshes it. */
+export const Screen = ({ children, testID, refreshControl }: PropsWithChildren<{ testID?: string; refreshControl?: ScrollViewProps['refreshControl'] }>) => (
+  <ScrollView testID={testID} style={s.screen} contentContainerStyle={s.screenContent} keyboardShouldPersistTaps="handled" refreshControl={refreshControl}>
     {children}
   </ScrollView>
 );

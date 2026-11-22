@@ -1,6 +1,7 @@
 import { screen, userEvent } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
 import { seedDemo } from '@/db/seed';
+import { saveBffToken } from '@/features/garmin';
 import { createPlan } from '@/features/plans';
 import { freezeToday } from '@/test/clock';
 import { givenData, session } from '@/test/fakeRepositories';
@@ -11,18 +12,23 @@ import { DashboardScreen } from '..';
 // layer, which cannot run under Jest either, so it is replaced the same way.
 jest.mock('@/features/plans/plan.repository', () => jest.requireActual('@/test/fakeRepositories').fakePlanRepository());
 jest.mock('@/features/workouts/workout.repository', () => jest.requireActual('@/test/fakeRepositories').fakeWorkoutRepository());
+jest.mock('@/features/garmin/activity.repository', () => jest.requireActual('@/test/fakeRepositories').fakeActivityRepository());
 jest.mock('@/db/seed', () => ({ seedDemo: jest.fn() }));
+// The BFF access token lives in the Keychain / Keystore, absent under Jest.
+jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));
 
 // The variant comes from the env file Expo loads; tests set the same variable.
 const original = process.env.EXPO_PUBLIC_APP_VARIANT;
 beforeEach(() => freezeToday(TODAY));
 afterEach(() => {
-  process.env.EXPO_PUBLIC_APP_VARIANT = original;
+  // Assigning `undefined` would store the string "undefined": unset it instead.
+  if (original === undefined) delete process.env.EXPO_PUBLIC_APP_VARIANT;
+  else process.env.EXPO_PUBLIC_APP_VARIANT = original;
   jest.useRealTimers();
 });
 
 const renderDashboard = () =>
-  renderRouter({ index: DashboardScreen, calendar: () => null, 'plans/[id]/edit': () => null, 'workouts/[id]': () => null }, { initialUrl: '/' });
+  renderRouter({ index: DashboardScreen, calendar: () => null, garmin: () => null, 'plans/[id]/edit': () => null, 'workouts/[id]': () => null }, { initialUrl: '/' });
 
 const renderEmptyDashboardIn = (variant: 'development' | 'production') => {
   process.env.EXPO_PUBLIC_APP_VARIANT = variant;
@@ -104,6 +110,23 @@ describe('dashboard of the selected plan', () => {
     expect(screen.getByText('lundi 23 novembre')).toBeOnTheScreen();
   });
 
+  it('counts Unplanned Activities in the totals, and a linked one once', async () => {
+    const run = (garminActivityId: string, startTime: string, sessionId: string | null) => ({
+      garminActivityId, startTime, distanceMeters: 6000, durationSeconds: 1800, averagePaceSecondsPerKm: 300, averageHeartRateBpm: null, sessionId, declinedSessionId: null, handLoggedMeters: null, handLoggedSeconds: null,
+    });
+    givenData({
+      workouts: [footing, vma],
+      plans: [tenK, marathon],
+      // s1 (8,2 km on the 10th) is completed by a Garmin Activity; Monday the 16th's 6 km are unplanned.
+      sessions: tenKSessions,
+      activities: [run('linked', '2026-11-10T07:00:00+01:00', 's1'), run('extra', '2026-11-16T07:00:00+01:00', null)],
+    });
+    await renderDashboard();
+    expect(screen.getByText('6 / 4 km')).toBeOnTheScreen();
+    expect(screen.getByText('2 sorties · 1 h 15')).toBeOnTheScreen();
+    expect(screen.getByText('0 séance(s) sur 1')).toBeOnTheScreen();
+  });
+
   it('shows dashes for a plan with nothing planned or run yet', async () => {
     givenData({ plans: [tenK] });
     await renderDashboard();
@@ -111,5 +134,37 @@ describe('dashboard of the selected plan', () => {
     expect(screen.getByText('— /km')).toBeOnTheScreen();
     expect(screen.getByText('— %')).toBeOnTheScreen();
     expect(screen.getByText('Plus aucune séance à venir dans ce plan.')).toBeOnTheScreen();
+  });
+});
+
+describe('the Garmin import from the dashboard', () => {
+  const originalUrl = process.env.EXPO_PUBLIC_BFF_URL;
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_BFF_URL = 'http://localhost:3000';
+    saveBffToken('the-token');
+  });
+  afterEach(() => {
+    if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_BFF_URL;
+    else process.env.EXPO_PUBLIC_BFF_URL = originalUrl;
+  });
+
+  it('opens from the dashboard of a plan once a BFF and a token are set', async () => {
+    const user = userEvent.setup();
+    givenData({ workouts: [footing, vma], plans: [tenK], sessions: tenKSessions });
+    await renderDashboard();
+    await user.press(screen.getByRole('button', { name: 'Importer depuis Garmin' }));
+    expect(screen).toHavePathname('/garmin');
+  });
+
+  it('opens even before any plan exists', async () => {
+    await renderEmptyDashboardIn('production');
+    expect(screen.getByRole('button', { name: 'Importer depuis Garmin' })).toBeOnTheScreen();
+  });
+
+  it('is absent from a build without a BFF', async () => {
+    delete process.env.EXPO_PUBLIC_BFF_URL;
+    givenData({ workouts: [footing, vma], plans: [tenK], sessions: tenKSessions });
+    await renderDashboard();
+    expect(screen.queryByRole('button', { name: 'Importer depuis Garmin' })).not.toBeOnTheScreen();
   });
 });

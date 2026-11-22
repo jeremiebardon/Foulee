@@ -1,5 +1,6 @@
 import { addDays, mondayOf, type ISODate } from '@/shared/lib/dates';
-import type { DoneRun, SessionView } from '@/features/plans/domain';
+import { activityDate, unaccountedActivities, type Activity } from '@/features/garmin/domain';
+import type { SessionView } from '@/features/plans/domain';
 
 export type WeekVolume = { start: ISODate; planned: number; done: number; current: boolean };
 
@@ -11,31 +12,40 @@ export type DashboardStats = {
   next: SessionView | null;
 };
 
+/** Running done: a Session marked done, or an Activity no Session accounts for. */
+type RunningDone = { date: ISODate; meters: number; seconds: number };
+
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const inRange = (d: ISODate, from: ISODate, to: ISODate) => d >= from && d <= to;
-type DoneView = SessionView & { done: DoneRun };
-const isDone = (v: SessionView): v is DoneView => v.done !== null;
-const doneMeters = (v: DoneView) => v.done.meters;
-const doneSeconds = (v: DoneView) => v.done.seconds;
+const meters = (r: RunningDone) => r.meters;
+const seconds = (r: RunningDone) => r.seconds;
+
+/** All running done, each counted once: the Sessions marked done, then the Activities none of them accounts for. */
+function runningDone(views: SessionView[], activities: Activity[]): RunningDone[] {
+  return [
+    ...views.flatMap((v) => (v.done ? [{ date: v.date, ...v.done }] : [])),
+    ...unaccountedActivities(activities, views).map((a) => ({ date: activityDate(a), meters: a.distanceMeters, seconds: a.durationSeconds })),
+  ];
+}
 
 /**
- * « Planned » comes from the selected plan, « done » from every session
- * marked done, whatever the plan.
+ * « Planned » comes from the selected plan, « done » from every session marked done, whatever
+ * the plan, and from Garmin Activities no session accounts for.
  */
-export function computeStats(all: SessionView[], planId: string | null, today: ISODate, weeks = 8): DashboardStats {
-  const done = all.filter(isDone);
+export function computeStats(all: SessionView[], planId: string | null, today: ISODate, activities: Activity[] = [], weeks = 8): DashboardStats {
+  const done = runningDone(all, activities);
   const planned = all.filter((v) => v.plan.id === planId);
   const monday = mondayOf(today);
-  const thisWeek = (v: SessionView) => inRange(v.date, monday, addDays(monday, 6));
-  const recent = done.filter((v) => inRange(v.date, addDays(today, -27), today));
-  const meters28 = sum(recent.map(doneMeters));
-  const seconds28 = sum(recent.map(doneSeconds));
+  const thisWeek = (x: { date: ISODate }) => inRange(x.date, monday, addDays(monday, 6));
+  const recent = done.filter((r) => inRange(r.date, addDays(today, -27), today));
+  const meters28 = sum(recent.map(meters));
+  const seconds28 = sum(recent.map(seconds));
   const due = planned.filter((v) => v.date < today || (v.date === today && v.done));
 
   return {
     week: {
       planned: sum(planned.filter(thisWeek).map((v) => v.totals.meters)),
-      done: sum(done.filter(thisWeek).map(doneMeters)),
+      done: sum(done.filter(thisWeek).map(meters)),
       sessionsDone: planned.filter((v) => thisWeek(v) && v.done).length,
       sessionsPlanned: planned.filter(thisWeek).length,
     },
@@ -43,11 +53,11 @@ export function computeStats(all: SessionView[], planId: string | null, today: I
     adherence: { done: due.filter((v) => v.done).length, due: due.length },
     weekly: Array.from({ length: weeks }, (_, i) => {
       const start = addDays(monday, (i - weeks + 1) * 7);
-      const within = (v: SessionView) => inRange(v.date, start, addDays(start, 6));
+      const within = (x: { date: ISODate }) => inRange(x.date, start, addDays(start, 6));
       return {
         start,
         planned: sum(planned.filter(within).map((v) => v.totals.meters)),
-        done: sum(done.filter(within).map(doneMeters)),
+        done: sum(done.filter(within).map(meters)),
         current: start === monday,
       };
     }),

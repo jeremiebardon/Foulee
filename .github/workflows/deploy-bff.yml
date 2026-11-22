@@ -1,0 +1,104 @@
+name: Deploy BFF
+
+# Deploys apps/bff to Fly.io on every push to main that affects it (spec #1, ADR 0004): a change to
+# the BFF, to a workspace package it depends on (packages/contracts, the shared config), to its
+# dependencies in the lockfile, or to a root file Turbo treats as global. A change to apps/mobile
+# alone, or to docs, deploys nothing. Run it by hand (workflow_dispatch) to deploy whatever changed.
+# GitHub holds one secret for this, FLY_API_TOKEN; the Garmin key and the BFF access token are Fly
+# secrets. One-time setup: docs/release-guide.md, "One-time BFF setup".
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time, in push order; never cancelled half-way.
+concurrency:
+  group: deploy-bff
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # --affected needs history to diff against the previous tip of main
+
+      - uses: pnpm/action-setup@v4 # version comes from "packageManager"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Is the BFF affected?
+        id: affected
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "Started by hand: deploying."
+            echo "bff=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "No previous tip of main to compare with (new branch or rewritten history): deploying."
+            echo "bff=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Shared with pr-checks.yml.
+          AFFECTED=$(node packages/release-tools/bin/affected.js --base "$BEFORE" bff=bff)
+          echo "$AFFECTED" >> "$GITHUB_OUTPUT"
+          if [ "$AFFECTED" = "bff=false" ]; then
+            echo "The BFF is not affected: nothing to deploy."
+          fi
+
+      # The image's build context: the BFF and the workspace packages it depends on, nothing else.
+      - name: Prune the workspace to the BFF
+        if: steps.affected.outputs.bff == 'true'
+        run: pnpm turbo prune bff --docker
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: steps.affected.outputs.bff == 'true'
+
+      # Builds on Fly's remote builder and tags the image with the commit: registry.fly.io/<app>:<sha>.
+      # The same SHA is baked into the image (GIT_SHA), so GET /health tells which commit runs.
+      # --ha=false keeps the app at one machine. The Dockerfile is the pruned copy, inside the build
+      # context, and every path is absolute, so nothing depends on how flyctl resolves relative ones.
+      - name: Deploy to Fly
+        if: steps.affected.outputs.bff == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: >-
+          flyctl deploy "$GITHUB_WORKSPACE/out"
+          --config "$GITHUB_WORKSPACE/apps/bff/fly.toml"
+          --dockerfile "$GITHUB_WORKSPACE/out/full/apps/bff/Dockerfile"
+          --image-label "$GITHUB_SHA"
+          --build-arg "GIT_SHA=$GITHUB_SHA"
+          --ha=false
+          --remote-only
+
+      - name: Check the running commit
+        if: steps.affected.outputs.bff == 'true'
+        run: |
+          APP=$(sed -n 's/^app *= *"\(.*\)"/\1/p' apps/bff/fly.toml)
+          URL="https://$APP.fly.dev/health"
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            BODY=$(curl -fsS --max-time 10 "$URL" || true)
+            echo "$URL -> $BODY"
+            if echo "$BODY" | grep -q "\"gitSha\":\"$GITHUB_SHA\""; then
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "::error::$URL does not report $GITHUB_SHA"
+          exit 1
