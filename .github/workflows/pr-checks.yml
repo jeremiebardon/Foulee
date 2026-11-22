@@ -63,10 +63,25 @@ jobs:
             LIST=$(pnpm turbo ls --output=json 2>/dev/null)
           fi
           echo "$LIST"
-          if echo "$LIST" | node -e 'const t=require("fs").readFileSync(0,"utf8").replace(/^[^{]*/,"");process.exit(JSON.parse(t).packages.items.some((p)=>p.name==="mobile")?0:1)'; then
+          affected() {
+            echo "$LIST" | node -e 'const t=require("fs").readFileSync(0,"utf8").replace(/^[^{]*/,"");process.exit(JSON.parse(t).packages.items.some((p)=>p.name===process.argv[1])?0:1)' "$1"
+          }
+          if affected mobile; then
             echo "mobile=true" >> "$GITHUB_OUTPUT"
           else
             echo "mobile=false" >> "$GITHUB_OUTPUT"
+          fi
+          if affected @foulee/contracts; then
+            echo "contracts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "contracts=false" >> "$GITHUB_OUTPUT"
+          fi
+          # The contract check always compares with main: the previous tip on a push to main,
+          # origin/main otherwise (whatever branch a pull request targets).
+          if [ "$EVENT" = "push" ] && [ -n "$BASE" ]; then
+            echo "compat_base=$BASE" >> "$GITHUB_OUTPUT"
+          else
+            echo "compat_base=origin/main" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Expo doctor (mobile only)
@@ -78,6 +93,18 @@ jobs:
         env:
           TURBO_SCM_BASE: ${{ steps.affected.outputs.base }}
         run: pnpm turbo run lint typecheck test ${{ steps.affected.outputs.flag }}
+
+      # An app build already on a phone must keep working after a BFF deploy, so changes inside /v1
+      # are additive only (packages/contracts/README.md). Exports the v1 schemas to JSON Schema and
+      # compares them with packages/contracts/json-schema/v1.json as committed on main; the tests
+      # above already failed if that file is out of date on this branch.
+      - name: Contract compatibility (contracts only)
+        if: steps.affected.outputs.contracts == 'true'
+        env:
+          COMPAT_BASE: ${{ steps.affected.outputs.compat_base }}
+        run: |
+          pnpm turbo run build --filter=@foulee/contracts
+          node packages/contracts/bin/check-compat.js --base "$COMPAT_BASE"
 
       # A pull request that changes apps/mobile or packages/contracts must add a changeset; one that
       # only changes the BFF, docs or tooling needs none. The script then runs `changeset status` to

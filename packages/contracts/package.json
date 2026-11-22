@@ -25,7 +25,9 @@
     "build": "tsup",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "export:json-schema": "tsup && node bin/export-json-schema.js",
+    "check:compat": "node bin/check-compat.js"
   },
   "dependencies": {
     "zod": "^4.6.7"
