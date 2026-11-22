@@ -1,0 +1,4 @@
+# Maestro workspace: `maestro test .maestro` (and the EAS e2e workflow) run every flow at this
+# level. Subflows are shared steps that other flows call; they are not run on their own.
+flows:
+  - '*'

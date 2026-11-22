@@ -18,17 +18,17 @@ export function PlanDetailScreen({ id }: { id: string }) {
   const current = Math.floor(diffDays(todayISO(), plan.startDate) / 7);
   const edit = () => router.push(`/plans/${id}/edit`);
   return (
-    <Screen>
+    <Screen testID="plan-detail">
       <Stack.Screen options={{ title: plan.name, headerRight: () => <Button icon="create-outline" label="Modifier" variant="ghost" onPress={edit} /> }} />
       <Card>
         <Txt v="muted">{formatShortDate(plan.startDate)} → {formatShortDate(planEnd(plan))} · {plan.weeks} semaines</Txt>
-        <Txt v="big">
+        <Txt testID="plan-detail-summary" v="big">
           {formatKm(volumes.reduce((a, b) => a + b, 0), 0)}<Txt v="muted"> km · {views.filter((v) => v.done).length}/{views.length} séances faites</Txt>
         </Txt>
         <VolumeBars volumes={volumes} max={Math.max(1, ...volumes)} current={current} />
         <Row>
-          <Button title="Modifier le plan" icon="create-outline" variant="primary" onPress={edit} />
-          {plan.selected ? <Txt v="label" style={{ color: color.accent }}>Affiché dans le calendrier</Txt> : <Button title="Afficher dans le calendrier" onPress={() => selectPlan(id)} />}
+          <Button testID="plan-edit" title="Modifier le plan" icon="create-outline" variant="primary" onPress={edit} />
+          {plan.selected ? <Txt testID="plan-detail-selected" v="label" style={{ color: color.accent }}>Affiché dans le calendrier</Txt> : <Button testID="plan-detail-select" title="Afficher dans le calendrier" onPress={() => selectPlan(id)} />}
         </Row>
       </Card>
 
@@ -43,7 +43,7 @@ export function PlanDetailScreen({ id }: { id: string }) {
             </Row>
             {ofWeek.length === 0 && <Txt v="muted">Semaine de repos</Txt>}
             {ofWeek.map((v) => (
-              <SessionRow key={v.session.id} view={v} prefix={`${DAY_NAMES[v.session.day]} ${formatShortDate(v.date)}`} onPress={() => router.push(`/workouts/${v.workout.id}`)} />
+              <SessionRow key={v.session.id} testID={`plan-week-${week}-session`} view={v} prefix={`${DAY_NAMES[v.session.day]} ${formatShortDate(v.date)}`} onPress={() => router.push(`/workouts/${v.workout.id}`)} />
             ))}
           </Card>
         );

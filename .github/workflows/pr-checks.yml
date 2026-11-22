@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The Version Packages pull request is pushed with the workflow's GITHUB_TOKEN, which starts no
+  # `pull_request` run; .github/workflows/release.yml dispatches this workflow on its branch instead.
+  workflow_dispatch:
 
 concurrency:
   group: pr-checks-${{ github.ref }}
@@ -75,3 +78,15 @@ jobs:
         env:
           TURBO_SCM_BASE: ${{ steps.affected.outputs.base }}
         run: pnpm turbo run lint typecheck test ${{ steps.affected.outputs.flag }}
+
+      # A pull request that changes apps/mobile or packages/contracts must add a changeset; one that
+      # only changes the BFF, docs or tooling needs none. The script then runs `changeset status` to
+      # check the changesets themselves. The Version Packages pull request (changeset-release/*)
+      # consumes the changesets, so the script exempts it from both. Pushes to main and manual runs
+      # have nothing to gate.
+      - name: Changeset check
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ steps.affected.outputs.base }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: node packages/release-tools/bin/check-changeset.js --base "$BASE" --head-branch "$HEAD_BRANCH"

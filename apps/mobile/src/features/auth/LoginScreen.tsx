@@ -37,7 +37,7 @@ export function LoginScreen() {
   const verify = (value: string) => run(async () => signIn(await gateway.verifyCode(email, value)));
 
   return (
-    <KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView testID="login-screen" style={s.page} behavior={Platform.select({ ios: 'padding' })}>
       <View style={s.hero}>
         <Txt style={s.tagline}>Un plan.{'\n'}Des séances.{'\n'}Un calendrier.</Txt>
       </View>
@@ -46,9 +46,9 @@ export function LoginScreen() {
         {!challenge ? (
           <>
             <Txt v="muted">Pas de mot de passe : un code à 6 chiffres est envoyé par email.</Txt>
-            <Field label="Adresse email" value={email} onChangeText={setEmail} placeholder="prenom@exemple.com"
+            <Field testID="login-email" label="Adresse email" value={email} onChangeText={setEmail} placeholder="prenom@exemple.com"
               autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" onSubmitEditing={requestCode} error={error} />
-            <Button title={busy ? 'Envoi…' : 'Recevoir mon code'} variant="primary" disabled={busy || !isEmail(email)} onPress={requestCode} />
+            <Button testID="login-request-code" title={busy ? 'Envoi…' : 'Recevoir mon code'} variant="primary" disabled={busy || !isEmail(email)} onPress={requestCode} />
           </>
         ) : (
           <>
@@ -56,10 +56,10 @@ export function LoginScreen() {
             {challenge.demoCode && (
               <View style={s.demo}>
                 <Txt v="label">Mode démo : aucun email n’est envoyé</Txt>
-                <Txt>Code : <Txt style={{ fontWeight: '800', letterSpacing: 3 }}>{challenge.demoCode}</Txt></Txt>
+                <Txt testID="login-demo-code">Code : <Txt style={{ fontWeight: '800', letterSpacing: 3 }}>{challenge.demoCode}</Txt></Txt>
               </View>
             )}
-            <Field label="Code à 6 chiffres" value={code} maxLength={6} keyboardType="number-pad" autoComplete="one-time-code" textContentType="oneTimeCode" error={error}
+            <Field testID="login-code" label="Code à 6 chiffres" value={code} maxLength={6} keyboardType="number-pad" autoComplete="one-time-code" textContentType="oneTimeCode" error={error}
               onChangeText={(t) => {
                 const digits = t.replace(/\D/g, '');
                 setCode(digits);

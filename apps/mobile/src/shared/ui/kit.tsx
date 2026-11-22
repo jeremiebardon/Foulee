@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack } from 'expo-router';
 import { useState, type ComponentProps, type PropsWithChildren, type ReactNode } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
 import { color, radius, space } from './theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -17,13 +17,15 @@ export const ListStack = ({ title }: { title: string }) => (
   </Stack>
 );
 
-export const Screen = ({ children }: PropsWithChildren) => (
-  <ScrollView style={s.screen} contentContainerStyle={s.screenContent} keyboardShouldPersistTaps="handled">
+// `testID` props are the Maestro seam: e2e flows select elements by test ID only, never by copy.
+
+export const Screen = ({ children, testID }: PropsWithChildren<{ testID?: string }>) => (
+  <ScrollView testID={testID} style={s.screen} contentContainerStyle={s.screenContent} keyboardShouldPersistTaps="handled">
     {children}
   </ScrollView>
 );
 
-export const Card = ({ children, style }: PropsWithChildren<{ style?: ViewStyle }>) => <View style={[s.card, style]}>{children}</View>;
+export const Card = ({ children, style, testID }: PropsWithChildren<{ style?: ViewStyle; testID?: string }>) => <View testID={testID} style={[s.card, style]}>{children}</View>;
 
 export const Row = ({ children, style }: PropsWithChildren<{ style?: ViewStyle }>) => <View style={[s.row, style]}>{children}</View>;
 
@@ -34,12 +36,13 @@ export const Txt = ({ v = 'body', style, ...props }: TextProps & { v?: Variant }
 
 // ---- Controls --------------------------------------------------------------
 
-type ButtonProps = { title?: string; icon?: IconName; onPress(): void; variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; disabled?: boolean; label?: string };
+type ButtonProps = { title?: string; icon?: IconName; onPress(): void; variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; disabled?: boolean; label?: string; testID?: string };
 
-export function Button({ title, icon, onPress, variant = 'secondary', disabled, label }: ButtonProps) {
+export function Button({ title, icon, onPress, variant = 'secondary', disabled, label, testID }: ButtonProps) {
   const fg = variant === 'primary' ? '#fff' : variant === 'danger' ? color.danger : color.ink;
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label ?? title}
       disabled={disabled}
@@ -89,12 +92,12 @@ export function ParsedField<T>({ value, format, parse, onChange, invalidText, ..
   );
 }
 
-/** Single choice among a few options, shown as chips. */
-export function Chips<T extends string>({ options, value, onChange }: { options: Record<T, string>; value: T; onChange(v: T): void }) {
+/** Single choice among a few options, shown as chips. With `testID`, each chip is `<testID>-<option key>`. */
+export function Chips<T extends string>({ options, value, onChange, testID }: { options: Record<T, string>; value: T; onChange(v: T): void; testID?: string }) {
   return (
     <View style={s.chips}>
       {(Object.keys(options) as T[]).map((key) => (
-        <Pressable key={key} accessibilityRole="radio" accessibilityState={{ selected: key === value }} onPress={() => onChange(key)} style={[s.chip, key === value && s.chipOn]}>
+        <Pressable key={key} testID={testID && `${testID}-${key}`} accessibilityRole="radio" accessibilityState={{ selected: key === value }} onPress={() => onChange(key)} style={[s.chip, key === value && s.chipOn]}>
           <Text style={[s.chipText, key === value && { color: color.accent }]}>{options[key]}</Text>
         </Pressable>
       ))}
@@ -102,16 +105,17 @@ export function Chips<T extends string>({ options, value, onChange }: { options:
   );
 }
 
-export function Stepper({ label, value, onChange, min = 1, max = 99, step = 1, format = String }: {
-  label: string; value: number; onChange(v: number): void; min?: number; max?: number; step?: number; format?(v: number): string;
+/** With `testID`, the buttons are `<testID>-minus` and `<testID>-plus`, the value `<testID>-value`. */
+export function Stepper({ label, value, onChange, min = 1, max = 99, step = 1, format = String, testID }: {
+  label: string; value: number; onChange(v: number): void; min?: number; max?: number; step?: number; format?(v: number): string; testID?: string;
 }) {
   return (
     <View style={s.field}>
       <Txt v="label">{label}</Txt>
       <Row style={s.stepper}>
-        <Button icon="remove" label={`${label} : moins`} variant="ghost" disabled={value - step < min} onPress={() => onChange(value - step)} />
-        <Txt v="h3" style={{ flex: 1, textAlign: 'center' }}>{format(value)}</Txt>
-        <Button icon="add" label={`${label} : plus`} variant="ghost" disabled={value + step > max} onPress={() => onChange(value + step)} />
+        <Button testID={testID && `${testID}-minus`} icon="remove" label={`${label} : moins`} variant="ghost" disabled={value - step < min} onPress={() => onChange(value - step)} />
+        <Txt testID={testID && `${testID}-value`} v="h3" style={{ flex: 1, textAlign: 'center' }}>{format(value)}</Txt>
+        <Button testID={testID && `${testID}-plus`} icon="add" label={`${label} : plus`} variant="ghost" disabled={value + step > max} onPress={() => onChange(value + step)} />
       </Row>
     </View>
   );
@@ -119,10 +123,10 @@ export function Stepper({ label, value, onChange, min = 1, max = 99, step = 1, f
 
 // ---- Overlays & states -----------------------------------------------------
 
-export const Sheet = ({ visible, title, onClose, children }: PropsWithChildren<{ visible: boolean; title: string; onClose(): void }>) => (
+export const Sheet = ({ visible, title, onClose, children, testID }: PropsWithChildren<{ visible: boolean; title: string; onClose(): void; testID?: string }>) => (
   <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
     <Pressable style={s.backdrop} onPress={onClose} accessibilityLabel="Fermer" />
-    <View style={s.sheet}>
+    <View testID={testID} style={s.sheet}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Txt v="h2" style={{ flex: 1 }}>{title}</Txt>
         <Button icon="close" label="Fermer" variant="ghost" onPress={onClose} />
@@ -132,17 +136,16 @@ export const Sheet = ({ visible, title, onClose, children }: PropsWithChildren<{
   </Modal>
 );
 
-export const Empty = ({ title, text, action }: { title: string; text: string; action?: ReactNode }) => (
-  <View style={s.empty}>
+export const Empty = ({ title, text, action, testID }: { title: string; text: string; action?: ReactNode; testID?: string }) => (
+  <View testID={testID} style={s.empty}>
     <Txt v="h2">{title}</Txt>
     <Txt v="muted">{text}</Txt>
     {action}
   </View>
 );
 
-/** Destructive confirmation. RN Web's Alert has no buttons, so web falls back to window.confirm. */
+/** Destructive confirmation. */
 export function confirm(title: string, message: string, action: string, onConfirm: () => void) {
-  if (Platform.OS === 'web') return window.confirm(`${title}\n\n${message}`) && onConfirm();
   Alert.alert(title, message, [{ text: 'Annuler', style: 'cancel' }, { text: action, style: 'destructive', onPress: onConfirm }]);
 }
 

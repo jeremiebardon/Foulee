@@ -1,11 +1,17 @@
 import { addDays, mondayOf, type ISODate } from '@/shared/lib/dates';
-import { workoutTotals, type Totals, type Workout } from '@/features/workouts/workout';
+import { workoutTotals, type Totals, type Workout } from '@/features/workouts/domain';
 
 // ---- Model -----------------------------------------------------------------
 
 export type Plan = { id: string; name: string; /** always a Monday */ startDate: ISODate; weeks: number; selected: boolean };
 
-/** A workout placed on one day of a plan, plus what was actually run. */
+/** What was actually run on a session. */
+export type DoneRun = { meters: number; seconds: number };
+
+/**
+ * A workout placed on one day of a plan, plus what was actually run, as stored: both done fields
+ * are set, or both are null. Read them through SessionView.done, which holds them together.
+ */
 export type Session = {
   id: string;
   planId: string;
@@ -19,7 +25,11 @@ export type Session = {
 };
 
 /** Read model: a session resolved against its plan and workout. */
-export type SessionView = { session: Session; plan: Plan; workout: Workout; date: ISODate; totals: Totals; done: boolean };
+export type SessionView = { session: Session; plan: Plan; workout: Workout; date: ISODate; totals: Totals; done: DoneRun | null };
+
+/** What was run on a session, or null while it is not done (a lone distance or time does not count). */
+export const doneRun = ({ doneMeters, doneSeconds }: Session): DoneRun | null =>
+  doneMeters !== null && doneSeconds !== null ? { meters: doneMeters, seconds: doneSeconds } : null;
 
 // ---- Rules -----------------------------------------------------------------
 
@@ -37,8 +47,7 @@ export function toSessionViews(plans: Plan[], sessions: Session[], workouts: Wor
       const plan = planById.get(session.planId);
       const workout = workoutById.get(session.workoutId);
       if (!plan || !workout || session.week >= plan.weeks) return [];
-      const done = session.doneMeters !== null && session.doneSeconds !== null;
-      return [{ session, plan, workout, date: sessionDate(plan, session), totals: workoutTotals(workout.items), done }];
+      return [{ session, plan, workout, date: sessionDate(plan, session), totals: workoutTotals(workout.items), done: doneRun(session) }];
     })
     .sort((a, b) => a.date.localeCompare(b.date));
 }

@@ -2,6 +2,7 @@
 const js = require('@eslint/js');
 const globals = require('globals');
 const tseslint = require('typescript-eslint');
+const testLocation = require('./test-location');
 
 module.exports = [
   { ignores: ['dist/**', 'coverage/**', '.turbo/**'] },
@@ -20,4 +21,5 @@ module.exports = [
     files: ['**/*.test.ts', '**/*.spec.ts'],
     languageOptions: { globals: { ...globals.jest } },
   },
+  testLocation,
 ];

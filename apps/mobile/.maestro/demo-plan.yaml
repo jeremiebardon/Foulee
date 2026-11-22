@@ -1,0 +1,27 @@
+appId: com.jbardon.foulee
+name: Load the demo plan
+tags:
+  - dashboard
+---
+- runFlow:
+    file: subflows/launch.yaml
+    env:
+      LINK: foulee://e2e?signedIn=true
+      SCREEN: dashboard-empty
+- tapOn:
+    id: dashboard-load-demo
+- extendedWaitUntil:
+    visible:
+      id: dashboard-week
+    timeout: 5000
+- tapOn:
+    id: tab-plans
+- assertVisible:
+    id: plan-item-selected
+- tapOn:
+    id: tab-workouts
+# The demo plan comes with its workouts, down to the last one of the seed.
+- scrollUntilVisible:
+    element:
+      id: workout-summary-name
+      text: Sortie longue 16 km
