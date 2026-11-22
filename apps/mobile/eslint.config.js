@@ -11,13 +11,14 @@ const expoConfig = require('@foulee/eslint-config/expo');
  * The rules:
  * - outside a feature, import it only through an entry point (`@/features/plans`,
  *   `@/features/plans/domain`); domain files use only the domain entry point;
- * - inside a feature, import its own files relatively (`./plan`); `../` would leave it;
+ * - inside a feature, import its own files relatively (`./plan`); `../` would leave it
+ *   (`../../` from the feature's __tests__ folder);
  * - dependencies point one way: workouts <- plans <- calendar, dashboard (FEATURE_DEPS);
  * - domain files (the feature's plain .ts files, except repositories and index.ts)
  *   import no React, React Native or database code;
  * - shared code imports no feature.
  * Route files in src/app are not exempt: they re-export screens from the entry points.
- * Checked against deliberate violations by scripts/check-lint-boundaries.js.
+ * Checked against deliberate violations by __tests__/lint-boundaries.test.js.
  */
 
 // The features each feature may import. A feature missing here fails the lint run.
@@ -46,6 +47,10 @@ const parentImport = {
   regex: '^\\.\\./',
   message: "'../' leaves this feature: import other features through their entry point, e.g. '@/features/plans'.",
 };
+const testParentImport = {
+  regex: '^\\.\\./\\.\\./',
+  message: "'../../' leaves this feature: import other features through their entry point, e.g. '@/features/plans'.",
+};
 const impureDomainImport = {
   regex: '^(react|react-native|expo-sqlite|drizzle-orm)(/|$)|^@/db(/|$)',
   message: 'Domain files stay pure: no React, React Native or database. Use a screen or a repository.',
@@ -69,7 +74,13 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
     message: `${feature} may import ${allowed.length ? `only ${allowed.join(', ')}` : 'no other feature'} (workouts <- plans <- calendar, dashboard); its own files are imported relatively.`,
   };
   return [
-    { files: [`src/features/${feature}/**`], rules: restrict(deepImport, parentImport, forbiddenFeatures) },
+    {
+      files: [`src/features/${feature}/**`],
+      ignores: ['**/__tests__/**'],
+      rules: restrict(deepImport, parentImport, forbiddenFeatures),
+    },
+    // Tests sit one level down, in the feature's __tests__ folder: `../` stays inside the feature.
+    { files: [`src/features/${feature}/__tests__/**`], rules: restrict(deepImport, testParentImport, forbiddenFeatures) },
     {
       files: [`src/features/${feature}/*.ts`],
       ignores: ['**/*.repository.ts', '**/index.ts'],
@@ -82,7 +93,7 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
 // Tests may set the variable the accessor reads, to switch variants.
 const envOnlyThroughAppConfig = {
   files: ['src/**'],
-  ignores: ['src/shared/config/appConfig.ts', '**/*.test.{ts,tsx}'],
+  ignores: ['src/shared/config/appConfig.ts', '**/__tests__/**'],
   rules: {
     'no-restricted-properties': [
       'error',
@@ -95,7 +106,7 @@ const envOnlyThroughAppConfig = {
 // opts code out of coverage inline would dodge that list, so every such comment is a lint error.
 // Matches what the coverage tools honour: a comment that opens with `<tool> ignore` for
 // istanbul (Jest's babel coverage), c8, v8 and node:coverage, with any spacing or JSDoc `*`.
-// Checked by scripts/check-lint-coverage-ignores.js.
+// Checked by __tests__/lint-coverage-ignores.test.js.
 const COVERAGE_IGNORE = /^[\s*]*(istanbul|c8|v8|node:coverage)\s+ignore\b/i;
 const coveragePlugin = {
   rules: {

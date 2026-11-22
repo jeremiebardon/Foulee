@@ -33,6 +33,10 @@ The BFF (`apps/bff`, NestJS) and `packages/contracts` are not Expo: the Expo rul
 
 Installs are isolated (pnpm's default, supported by Expo since SDK 54), so a native module's peer dependencies must be direct dependencies of `apps/mobile`. Run lint, typecheck and tests through Turbo before declaring any task done.
 
+## Tests
+
+Every test file lives in a `__tests__` folder next to the code it tests: `src/features/plans/__tests__/plan.test.ts` tests `src/features/plans/plan.ts`. The one exception is end-to-end: the Maestro flows stay in `apps/mobile/.maestro/`. Shared test helpers (fakes, fixtures) may stay in `apps/mobile/src/test/`. Jest only runs files under `__tests__`, and lint (`@foulee/eslint-config`) fails a `*.test.*` or `*.spec.*` file anywhere else.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `apps/mobile/src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.

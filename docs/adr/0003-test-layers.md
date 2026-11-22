@@ -17,11 +17,15 @@ Repositories read through Drizzle's `useLiveQuery`, which relies on expo-sqlite'
 The Jest config excludes two more folders. Neither ships in the app, so the Maestro rule above does not apply to them:
 
 - `src/devtools`: the development-only wiring of Rozenite and Drizzle Studio. The root layout requires it behind `__DEV__`, so Metro drops it from every release bundle, e2e builds included. That is also why no Maestro flow can reach it. It holds no logic of its own; a Jest test could only check that mocked hooks were called.
-- `src/test` (and `*.test.*` files): fakes, fixtures and helpers. They are test code, not app code, and run in every test that uses them.
+- `src/test` (and the `__tests__` folders): fakes, fixtures, helpers and the tests themselves. They are test code, not app code, and run in every test that uses them.
 
 Route files stay excluded on one condition: they only compose. A route re-exports a screen or forwards a call, and a layout wires navigators and providers; Maestro exercises both. Any decision of their own moves into a covered module. For example, the incoming-link redirect lives in `src/e2e/link.ts`, and `src/app/+native-intent.tsx` only calls it.
 
 Some checks are not Jest tests and have no coverage threshold. They run with `node --test`:
 
-- `apps/mobile/scripts/check-*.js`, run by `pnpm lint`. These self-tests prove that the lint rules and the app config still do their job. They are tests themselves.
+- `apps/mobile/__tests__/*.test.js`, run by `pnpm lint`. These self-tests prove that the lint rules and the app config still do their job. They are tests themselves.
 - `packages/release-tools`, run by its `test` task. It is CI tooling (the changeset check and the release tag), not app code, and its pure modules are unit-tested there.
+
+## Addendum: where tests live
+
+Every test file sits in a `__tests__` folder next to the code it tests, in every workspace. End-to-end tests are the exception: the Maestro flows stay in `apps/mobile/.maestro/`. Jest matches only files under `__tests__`, and the shared ESLint config fails a `*.test.*` or `*.spec.*` file anywhere else, so a misplaced test is a lint error instead of a test that never runs.

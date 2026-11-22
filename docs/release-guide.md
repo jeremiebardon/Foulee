@@ -119,7 +119,7 @@ Do this once, after the Expo setup above. Every credential goes to EAS, never to
 
 ## Releasing
 
-Releasing means merging a pull request. Changesets versions one package, the app (`mobile` in `apps/mobile`); the BFF deploys on its own and the `@foulee/*` packages are internal, so `.changeset/config.json` ignores them. The app version lives only in `apps/mobile/package.json`: `app.config.ts` reads it (`scripts/check-app-config.js` checks this on every lint), and EAS adds the build numbers.
+Releasing means merging a pull request. Changesets versions one package, the app (`mobile` in `apps/mobile`); the BFF deploys on its own and the `@foulee/*` packages are internal, so `.changeset/config.json` ignores them. The app version lives only in `apps/mobile/package.json`: `app.config.ts` reads it (`apps/mobile/__tests__/app-config.test.js` checks this on every lint), and EAS adds the build numbers.
 
 1. **Every pull request that changes the app** adds a changeset: run `pnpm changeset` at the repository root, pick `mobile`, choose patch, minor or major, write the line users will read in the changelog, and commit the file. For a change users do not notice (tests, tooling), `pnpm changeset --empty` satisfies the check without releasing anything.
 2. **On every push to `main`**, `.github/workflows/release.yml` runs the changesets action. While changesets are waiting, it keeps a pull request titled `chore(release): version packages` open on the branch `changeset-release/main`, and updates it on each push. It bumps the version in `apps/mobile/package.json` and writes `apps/mobile/CHANGELOG.md`.
