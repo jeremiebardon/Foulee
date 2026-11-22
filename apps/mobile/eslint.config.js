@@ -21,7 +21,11 @@ const expoConfig = require('@foulee/eslint-config/expo');
  *   index.ts may import any folder;
  * - dependencies point one way: workouts <- plans <- garmin <- calendar, dashboard (FEATURE_DEPS);
  * - domain files import no React, React Native, Expo module or database code, and call no network;
- * - shared code imports no feature.
+ * - shared code imports no feature;
+ * - only the service adapters in src/shared/services import the libraries behind a service
+ *   (expo-secure-store, expo-sqlite/kv-store) or call the network (fetch, XMLHttpRequest); everything
+ *   else uses `services`. Exempt: src/e2e (patches fetch, seeds stores), src/devtools, src/test and
+ *   every __tests__ folder.
  * Route files in src/app are not exempt: they re-export screens from the entry points.
  * Checked against deliberate violations by __tests__/lint-boundaries.test.js.
  */
@@ -64,9 +68,23 @@ const fullEntryFromDomain = {
   regex: '^@/features/[^/]+$',
   message: "Domain files import another feature's pure entry point, e.g. '@/features/plans/domain'.",
 };
+const serviceLibraries = {
+  regex: '^expo-secure-store$|^expo-sqlite/kv-store$',
+  message: "Use the secure store and key-value store services ('@/shared/services'): only their adapters import these libraries.",
+};
 const anyFeature = {
   regex: '(^|/)features(/|$)',
   message: 'Shared code is used by features and imports none of them.',
+};
+
+// Code that may use the libraries and the network itself: the adapters, e2e wiring, dev tools, test code.
+const SERVICE_EXEMPT = ['src/shared/services/**', 'src/e2e/**', 'src/devtools/**', 'src/test/**', '**/__tests__/**'];
+const noNetworkOutsideServices = {
+  'no-restricted-globals': [
+    'error',
+    { name: 'fetch', message: "Use the HTTP service ('@/shared/services'): only its adapter calls the network." },
+    { name: 'XMLHttpRequest', message: "Use the HTTP service ('@/shared/services'): only its adapter calls the network." },
+  ],
 };
 
 const restrict = (...patterns) => ({ 'no-restricted-imports': ['error', { patterns }] });
@@ -96,8 +114,14 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
     // the feature does not depend on, no climbing out of the feature. The blocks below override this
     // one for the files they match, so a file outside the role folders keeps these checks.
     { files: [`src/features/${feature}/**`], rules: restrict(deepImport, forbiddenFeatures, leavesFeature(2)) },
+    // ... and, tests apart, no service library.
+    {
+      files: [`src/features/${feature}/**`],
+      ignores: SERVICE_EXEMPT,
+      rules: restrict(deepImport, forbiddenFeatures, leavesFeature(2), serviceLibraries),
+    },
     // Only index.ts, the entry point, sits at the feature's root; it may import any folder.
-    { files: [`src/features/${feature}/index.ts`], rules: restrict(deepImport, forbiddenFeatures, leavesFeature(1)) },
+    { files: [`src/features/${feature}/index.ts`], rules: restrict(deepImport, forbiddenFeatures, leavesFeature(1), serviceLibraries) },
     // Any other file at the root belongs in a role folder: until it is moved, it is linted as a domain file.
     {
       files: [`src/features/${feature}/*.{ts,tsx}`],
@@ -113,13 +137,15 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
         leavesFeature(levels + 1),
         ...(later.length > 0 ? [laterFolder(levels, later)] : []),
       ];
+      // Tests, being exempt, do not list `serviceLibraries`.
+      const inApp = (levels) => [...own(levels), serviceLibraries];
       const domainOnly = role === 'domain' ? [impureDomainImport, fullEntryFromDomain] : [];
       return [
         {
           files: [`src/features/${feature}/${role}/**`],
           ignores: ['**/__tests__/**'],
           rules: {
-            ...restrict(...own(1), ...domainOnly),
+            ...restrict(...inApp(1), ...domainOnly),
             ...(role === 'domain' ? noNetworkInDomain : {}),
           },
         },
@@ -175,7 +201,10 @@ module.exports = defineConfig([
   { plugins: { coverage: coveragePlugin }, rules: { 'coverage/no-ignore-comments': 'error' } },
   { ignores: ['src/db/migrations/*'] },
   { files: ['src/**'], rules: restrict(deepImport) },
+  // The block above covers the exempt code; the next adds the service libraries and the network for the rest.
+  { files: ['src/**'], ignores: SERVICE_EXEMPT, rules: { ...restrict(deepImport, serviceLibraries), ...noNetworkOutsideServices } },
   ...featureBlocks,
   { files: ['src/shared/**'], rules: restrict(anyFeature) },
+  { files: ['src/shared/**'], ignores: SERVICE_EXEMPT, rules: restrict(anyFeature, serviceLibraries) },
   envOnlyThroughAppConfig,
 ]);

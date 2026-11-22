@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Card, Field, Screen, Txt } from '@/shared/ui/kit';
-import { forgetBffToken, saveBffToken, useGarminImport } from '../data/bffAccess.store';
+import { forgetBffToken, saveBffToken } from '../data/bffAccess.store';
+import { useGarminImport } from '../hooks/useGarminImport';
 
 /** Settings: the BFF access token that proves to the BFF this phone is the owner's. */
 export function SettingsScreen() {

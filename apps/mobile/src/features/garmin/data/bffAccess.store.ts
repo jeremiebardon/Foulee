@@ -1,12 +1,9 @@
-import * as SecureStore from 'expo-secure-store';
-import { useMemo, useSyncExternalStore } from 'react';
-import { appConfig } from '@/shared/config/appConfig';
-import { bffAccessOf } from '../domain/bffAccess';
+import { services } from '@/shared/services';
 
 /**
- * Client of the phone's secure store, for access to the BFF: its URL comes with the build
- * (appConfig), the BFF Access Token is pasted once in Settings and kept in the Keychain /
- * Keystore, never in the database or the bundle.
+ * The BFF Access Token, kept through the secure store service: the pasted-once token lives in the
+ * Keychain / Keystore, never in the database or the bundle. Its URL comes with the build (appConfig),
+ * so the hook that pairs them is useGarminImport (../hooks).
  */
 const KEY = 'garmin.bffAccessToken';
 
@@ -23,8 +20,8 @@ export function storedToken(read: () => string | null): string | null {
   }
 }
 
-function readToken(): string | null {
-  if (token === undefined) token = storedToken(() => SecureStore.getItem(KEY));
+export function readBffToken(): string | null {
+  if (token === undefined) token = storedToken(() => services.secureStore.get(KEY));
   return token;
 }
 
@@ -33,27 +30,19 @@ function publish(next: string | null) {
   listeners.forEach((listener) => listener());
 }
 
-const subscribe = (listener: () => void) => {
+/** For `useSyncExternalStore`: tells `listener` whenever the token is saved or forgotten. */
+export const subscribeBffToken = (listener: () => void) => {
   listeners.add(listener);
   return () => void listeners.delete(listener);
 };
 
 /** Throws when the phone cannot store it. */
 export function saveBffToken(value: string) {
-  SecureStore.setItem(KEY, value);
+  services.secureStore.set(KEY, value);
   publish(value);
 }
 
 export async function forgetBffToken() {
-  await SecureStore.deleteItemAsync(KEY);
+  await services.secureStore.delete(KEY);
   publish(null);
-}
-
-/** The BFF URL and the saved token, and the access they make together (`null`: no Garmin import). */
-export function useGarminImport() {
-  const token = useSyncExternalStore(subscribe, readToken);
-  const { bffUrl } = appConfig();
-  // One object per URL and token, so a screen can depend on it.
-  const access = useMemo(() => bffAccessOf({ bffUrl, token }), [bffUrl, token]);
-  return { bffUrl, token, access };
 }

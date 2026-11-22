@@ -1,6 +1,7 @@
 import { screen, userEvent, within } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
 import { givenData, session } from '@/test/fakeRepositories';
+import { resetFakeServices } from '@/test/fakeServices';
 import { footing, marathon, tenK, tenKSessions, vma } from '@/test/fixtures';
 import type { Activity } from '../../domain/activity';
 import { declineSuggestion, linkActivity, unlinkActivity } from '../../data/activity.repository';
@@ -13,10 +14,11 @@ jest.mock('../../data/activity.repository', () => jest.requireActual('@/test/fak
 jest.mock('@/features/plans/data/plan.repository', () => jest.requireActual('@/test/fakeRepositories').fakePlanRepository());
 jest.mock('@/features/workouts/data/workout.repository', () => jest.requireActual('@/test/fakeRepositories').fakeWorkoutRepository());
 jest.mock('../../data/bff.api', () => ({ ...jest.requireActual('../../data/bff.api'), fetchActivitiesSince: jest.fn() }));
-jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));
+jest.mock('@/shared/services', () => jest.requireActual('@/test/fakeServices').fakeServicesModule());
 
 const original = process.env.EXPO_PUBLIC_BFF_URL;
 beforeEach(() => {
+  resetFakeServices();
   process.env.EXPO_PUBLIC_BFF_URL = 'http://localhost:3000';
   saveBffToken('the-token');
   jest.mocked(fetchActivitiesSince).mockResolvedValue({ activities: [], nextCursor: null });

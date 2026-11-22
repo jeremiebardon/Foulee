@@ -1,6 +1,7 @@
 import { act, screen, userEvent } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
 import { givenData } from '@/test/fakeRepositories';
+import { resetFakeServices } from '@/test/fakeServices';
 import type { Activity } from '../../domain/activity';
 import { saveImport } from '../../data/activity.repository';
 import { ActivityImportScreen } from '../ActivityImportScreen';
@@ -12,10 +13,11 @@ jest.mock('@/features/plans/data/plan.repository', () => jest.requireActual('@/t
 jest.mock('@/features/workouts/data/workout.repository', () => jest.requireActual('@/test/fakeRepositories').fakeWorkoutRepository());
 jest.mock('../../data/activity.repository', () => jest.requireActual('@/test/fakeRepositories').fakeActivityRepository());
 jest.mock('../../data/bff.api', () => ({ ...jest.requireActual('../../data/bff.api'), fetchActivitiesSince: jest.fn() }));
-jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));
+jest.mock('@/shared/services', () => jest.requireActual('@/test/fakeServices').fakeServicesModule());
 
 const original = process.env.EXPO_PUBLIC_BFF_URL;
 beforeEach(() => {
+  resetFakeServices();
   // clearMocks keeps queued answers: drop the ones a test left unused.
   jest.mocked(fetchActivitiesSince).mockReset();
   process.env.EXPO_PUBLIC_BFF_URL = 'http://localhost:3000';

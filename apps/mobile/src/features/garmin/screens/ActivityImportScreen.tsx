@@ -8,7 +8,7 @@ import { readImportCursor, saveImport } from '../data/activity.repository';
 import { ActivityCard } from '../components/ActivityCard';
 import { BffError, fetchActivitiesSince, type ImportFailure } from '../data/bff.api';
 import type { BffAccess } from '../domain/bffAccess';
-import { useGarminImport } from '../data/bffAccess.store';
+import { useGarminImport } from '../hooks/useGarminImport';
 import { useLinking } from '../hooks/useLinking';
 
 const FAILURE_MESSAGES: Record<ImportFailure, string> = {

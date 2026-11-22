@@ -1,25 +1,15 @@
+import { HttpNetworkError } from '@/shared/services/http/HttpClient';
+import { givenHttpResponse, lastHttpRequest, resetFakeServices } from '@/test/fakeServices';
 import { BffError, fetchActivitiesSince } from '../bff.api';
 
-// The network is the boundary: `fetch` is replaced by a stand-in BFF that answers each request.
-const realFetch = globalThis.fetch;
-const fetchMock = jest.fn<Promise<Response>, [string, RequestInit]>();
-beforeEach(() => {
-  globalThis.fetch = fetchMock as unknown as typeof fetch;
-});
-afterEach(() => {
-  globalThis.fetch = realFetch;
-  jest.useRealTimers();
-});
+// The BFF is reached through the HTTP service: the fake answers each request the test queues.
+jest.mock('@/shared/services', () => jest.requireActual('@/test/fakeServices').fakeServicesModule());
 
-const bffAnswers = (status: number, body: unknown) =>
-  fetchMock.mockResolvedValue(new Response(typeof body === 'string' ? body : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
+beforeEach(resetFakeServices);
 
-const lastRequest = () => {
-  const [url, init] = fetchMock.mock.calls.at(-1)!;
-  return { url, headers: init.headers };
-};
+const bffAnswers = (status: number, body: unknown) => givenHttpResponse({ status, ok: status >= 200 && status < 300, body });
 
-const fetchActivities = (since: string | null = null) => fetchActivitiesSince({ bffUrl: 'http://localhost:3000', token: 'the-token' }, since);
+const fetchActivities = (since: string | null = null) => fetchActivitiesSince({ bffUrl: 'https://bff.test', token: 'tok' }, since);
 
 const failureOf = (promise: Promise<unknown>) =>
   promise.then(
@@ -42,28 +32,34 @@ describe('fetching Activities from the BFF', () => {
       activities: [{ ...run, averageHeartRateBpm: null, sessionId: null, declinedSessionId: null, handLoggedMeters: null, handLoggedSeconds: null }],
       nextCursor: '2026-11-17T06:30:00.000Z',
     });
-    expect(lastRequest()).toEqual({ url: 'http://localhost:3000/v1/activities', headers: { Accept: 'application/json', Authorization: 'Bearer the-token' } });
+    expect(lastHttpRequest()).toEqual({
+      method: 'GET',
+      url: 'https://bff.test/v1/activities',
+      headers: { Accept: 'application/json', Authorization: 'Bearer tok' },
+      timeoutMs: 20_000,
+    });
   });
 
   it('asks only for Activities after the cursor of the last import', async () => {
     bffAnswers(200, { activities: [], nextCursor: '2026-11-17T06:30:00.000Z' });
-    await expect(fetchActivities('2026-11-17T06:30:00.000Z')).resolves.toEqual({ activities: [], nextCursor: '2026-11-17T06:30:00.000Z' });
-    expect(lastRequest().url).toBe('http://localhost:3000/v1/activities?since=2026-11-17T06%3A30%3A00.000Z');
+    await expect(fetchActivities('c1')).resolves.toEqual({ activities: [], nextCursor: '2026-11-17T06:30:00.000Z' });
+    expect(lastHttpRequest()).toEqual({
+      method: 'GET',
+      url: 'https://bff.test/v1/activities?since=c1',
+      headers: { Accept: 'application/json', Authorization: 'Bearer tok' },
+      timeoutMs: 20_000,
+    });
+  });
+
+  it('encodes the cursor in the query', async () => {
+    bffAnswers(200, { activities: [], nextCursor: null });
+    await fetchActivities('2026-11-17T06:30:00.000Z');
+    expect(lastHttpRequest()?.url).toBe('https://bff.test/v1/activities?since=2026-11-17T06%3A30%3A00.000Z');
   });
 
   it('fails as a network failure when the BFF cannot be reached', async () => {
-    fetchMock.mockRejectedValue(new TypeError('Network request failed'));
+    givenHttpResponse(new HttpNetworkError('offline'));
     await expect(failureOf(fetchActivities())).resolves.toBe('network');
-  });
-
-  it('gives up as a network failure when the BFF does not answer in time', async () => {
-    jest.useFakeTimers();
-    fetchMock.mockImplementation(
-      (_url, init) => new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))),
-    );
-    const failure = failureOf(fetchActivities());
-    await jest.advanceTimersByTimeAsync(20_000);
-    await expect(failure).resolves.toBe('network');
   });
 
   it('fails as unauthorized when the BFF refuses the access token', async () => {
@@ -79,14 +75,14 @@ describe('fetching Activities from the BFF', () => {
   it('fails as unexpected on any other error', async () => {
     bffAnswers(500, { code: 'internal_error', message: 'Internal server error' });
     await expect(failureOf(fetchActivities())).resolves.toBe('unexpected');
-    bffAnswers(502, '<html>Bad gateway</html>');
+    bffAnswers(502, null);
     await expect(failureOf(fetchActivities())).resolves.toBe('unexpected');
   });
 
   it('rejects a response that breaks the contract, rather than storing bad data', async () => {
     bffAnswers(200, { activities: [{ ...run, distanceMeters: -1 }], nextCursor: null });
     await expect(failureOf(fetchActivities())).resolves.toBe('unexpected');
-    bffAnswers(200, 'not json');
+    bffAnswers(200, null);
     await expect(failureOf(fetchActivities())).resolves.toBe('unexpected');
   });
 });

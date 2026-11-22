@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { Button } from '@/shared/ui/kit';
-import { useGarminImport } from '../data/bffAccess.store';
+import { useGarminImport } from '../hooks/useGarminImport';
 
 /** Entry point of the Garmin import: nothing at all until a BFF URL and an access token are set. */
 export function GarminImportLink() {

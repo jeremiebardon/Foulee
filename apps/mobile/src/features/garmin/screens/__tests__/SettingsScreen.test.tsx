@@ -1,15 +1,19 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
-import { failNextWrite } from '@/test/memorySecureStore';
-import { forgetBffToken, useGarminImport } from '../../data/bffAccess.store';
+import { failNextSecureWrite, resetFakeServices } from '@/test/fakeServices';
+import { forgetBffToken } from '../../data/bffAccess.store';
+import { useGarminImport } from '../../hooks/useGarminImport';
 import { SettingsScreen } from '../SettingsScreen';
 import { Txt } from '@/shared/ui/kit';
 
-// The token lives in the Keychain / Keystore, absent under Jest: an in-memory store stands in for it.
-jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));
+// The token lives in the secure store service: an in-memory one stands in for the Keychain / Keystore.
+jest.mock('@/shared/services', () => jest.requireActual('@/test/fakeServices').fakeServicesModule());
 
 // The BFF URL comes from the variant env file Expo loads; tests set the same variable.
 const original = process.env.EXPO_PUBLIC_BFF_URL;
-beforeEach(() => forgetBffToken());
+beforeEach(async () => {
+  resetFakeServices();
+  await forgetBffToken();
+});
 afterEach(() => {
   if (original === undefined) delete process.env.EXPO_PUBLIC_BFF_URL;
   else process.env.EXPO_PUBLIC_BFF_URL = original;
@@ -69,7 +73,7 @@ describe('the BFF access token', () => {
 
   it('says so when the phone cannot store it', async () => {
     const user = await renderSettings();
-    failNextWrite();
+    failNextSecureWrite();
     await saveToken(user, 'a-long-random-secret');
     expect(screen.getByText('Le jeton n’a pas pu être enregistré sur ce téléphone.')).toBeOnTheScreen();
     expect(screen.getByText('Import caché')).toBeOnTheScreen();

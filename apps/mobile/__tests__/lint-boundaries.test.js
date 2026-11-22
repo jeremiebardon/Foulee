@@ -83,18 +83,93 @@ test('domain folders stay pure', async () => {
   await passes('src/features/workouts/components/WorkoutSummary.tsx', "import { View } from 'react-native';");
 });
 
-test('domain files reach nothing outside the app: data does, hooks use React', async () => {
+test('domain files reach nothing outside the app; data reaches it through the services, hooks use React', async () => {
   const globalErrors = (filePath, code) => lintMessages('no-restricted-globals', filePath, code);
   const callsNetwork = "export const get = () => fetch('/v1/activities');";
   await fails('src/features/garmin/domain/activity.ts', "import * as SecureStore from 'expo-secure-store';");
   assert.notDeepEqual(await globalErrors('src/features/garmin/domain/activity.ts', callsNetwork), []);
-  // The data folder talks to what lies outside the app: the database, the BFF, the secure store.
-  assert.deepEqual(await globalErrors('src/features/garmin/data/bff.api.ts', callsNetwork), []);
-  await passes('src/features/garmin/data/bffAccess.store.ts', "import * as SecureStore from 'expo-secure-store';");
+  // The data folder talks to what lies outside the app: the database, and the BFF and the secure store through the services.
+  assert.notDeepEqual(await globalErrors('src/features/garmin/data/bff.api.ts', callsNetwork), []);
+  await fails('src/features/garmin/data/bffAccess.store.ts', "import * as SecureStore from 'expo-secure-store';");
+  await passes('src/features/garmin/data/bffAccess.store.ts', "import { services } from '@/shared/services';");
   await passes('src/features/garmin/data/bffAccess.store.ts', "import { useSyncExternalStore } from 'react';");
   // A hook module composes React hooks over the data folder, with no JSX.
   await passes('src/features/garmin/hooks/useLinking.ts', "import { useMemo } from 'react';");
   await fails('src/features/garmin/hooks/useLinking.ts', "import { PlanPicker } from '@/features/plans/components/PlanPicker';");
+});
+
+test('only service adapters reach the service libraries', async () => {
+  const globalErrors = (filePath, code) => lintMessages('no-restricted-globals', filePath, code);
+  const secure = "import * as SecureStore from 'expo-secure-store';";
+  const kv = "import Storage from 'expo-sqlite/kv-store';";
+  const callsFetch = "export const get = () => fetch('/v1/activities');";
+  const usesXhr = 'export const get = () => new XMLHttpRequest();';
+  const callsFetchOnGlobal = "export const get = () => globalThis.fetch('/v1/activities');";
+
+  // Every kind of file in a feature, and the rest of the app, reaches the libraries only through the services.
+  const everyone = [
+    'src/features/garmin/domain/activity.ts',
+    'src/features/garmin/data/bffAccess.store.ts',
+    'src/features/auth/data/session.store.ts',
+    'src/features/garmin/hooks/useGarminImport.ts',
+    'src/features/auth/components/AuthProvider.tsx',
+    'src/features/garmin/screens/SettingsScreen.tsx',
+    'src/features/garmin/index.ts',
+    'src/features/garmin/domain/index.ts',
+    'src/features/garmin/activity2.ts',
+    'src/features/garmin/utils/x.ts',
+    'src/shared/lib/format.ts',
+    'src/shared/ui/kit.tsx',
+    'src/shared/config/appConfig.ts',
+    'src/app/(tabs)/settings.tsx',
+    'src/db/client.ts',
+  ];
+  for (const filePath of everyone) {
+    await fails(filePath, secure);
+    await fails(filePath, kv);
+    assert.notDeepEqual(await globalErrors(filePath, callsFetch), [], `${filePath} should not call fetch`);
+    assert.notDeepEqual(await globalErrors(filePath, usesXhr), [], `${filePath} should not use XMLHttpRequest`);
+  }
+  // Calling it through globalThis is the adapters' own way: not a bare global, so left to review.
+  assert.deepEqual(await globalErrors('src/features/garmin/data/bff.api.ts', callsFetchOnGlobal), []);
+
+  // Only the service adapters import them, and only they call the network.
+  await passes('src/shared/services/secureStore/expoSecureStore.ts', secure);
+  await passes('src/shared/services/kvStore/expoKvStore.ts', kv);
+  assert.deepEqual(await globalErrors('src/shared/services/http/fetchHttpClient.ts', callsFetch), []);
+  // The adapters stay shared code: no feature.
+  await fails('src/shared/services/http/fetchHttpClient.ts', "import { useAuth } from '@/features/auth';");
+  await fails('src/shared/services/kvStore/expoKvStore.ts', "import { useAuth } from '@/features/auth';");
+
+  // Exempt: the e2e wiring (it patches fetch and seeds the stores), the dev tools, and test code.
+  assert.deepEqual(await globalErrors('src/e2e/bffStub.ts', callsFetch), []);
+  await passes('src/e2e/startup.ts', secure);
+  await passes('src/e2e/startup.ts', kv);
+  await passes('src/devtools/useDevTools.ts', kv);
+  assert.deepEqual(await globalErrors('src/devtools/useDevTools.ts', callsFetch), []);
+  await passes('src/test/memorySecureStore.ts', secure);
+  assert.deepEqual(await globalErrors('src/test/fakeServices.ts', callsFetch), []);
+  const tests = [
+    'src/features/garmin/data/__tests__/bffAccess.store.test.ts',
+    'src/features/garmin/screens/__tests__/SettingsScreen.test.tsx',
+    'src/features/workouts/__tests__/x.test.ts',
+    'src/shared/ui/__tests__/kit.test.tsx',
+    'src/shared/services/http/__tests__/fetchHttpClient.test.ts',
+    'src/e2e/__tests__/startup.test.tsx',
+  ];
+  for (const filePath of tests) {
+    await passes(filePath, secure);
+    await passes(filePath, kv);
+    assert.deepEqual(await globalErrors(filePath, callsFetch), [], `${filePath} may call fetch`);
+  }
+
+  // The rest of each file's restrictions stay: no other feature's internals, no way out of the feature.
+  await fails('src/features/garmin/data/bffAccess.store.ts', "import { x } from '@/features/plans/data/plan.repository';");
+  await fails('src/features/garmin/hooks/useGarminImport.ts', "import { ActivityCard } from '../components/ActivityCard';");
+  await fails('src/shared/lib/format.ts', "import { useAuth } from '@/features/auth';");
+  await fails('src/features/workouts/__tests__/x.test.ts', "import { PlanPicker } from '@/features/plans';");
+  // Other libraries are not the services' concern: the data folder still reaches the database.
+  await passes('src/features/plans/data/plan.repository.ts', "import { openDatabaseSync } from 'expo-sqlite';");
 });
 
 test('dependencies point one way: workouts <- plans <- garmin <- calendar, dashboard', async () => {

@@ -5,6 +5,7 @@ import { saveBffToken } from '@/features/garmin';
 import { createPlan } from '@/features/plans';
 import { freezeToday } from '@/test/clock';
 import { givenData, session } from '@/test/fakeRepositories';
+import { resetFakeServices } from '@/test/fakeServices';
 import { footing, marathon, TODAY, tenK, tenKSessions, vma } from '@/test/fixtures';
 import { DashboardScreen } from '../..';
 
@@ -14,12 +15,15 @@ jest.mock('@/features/plans/data/plan.repository', () => jest.requireActual('@/t
 jest.mock('@/features/workouts/data/workout.repository', () => jest.requireActual('@/test/fakeRepositories').fakeWorkoutRepository());
 jest.mock('@/features/garmin/data/activity.repository', () => jest.requireActual('@/test/fakeRepositories').fakeActivityRepository());
 jest.mock('@/db/seed', () => ({ seedDemo: jest.fn() }));
-// The BFF access token lives in the Keychain / Keystore, absent under Jest.
-jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));
+// The BFF access token lives in the secure store service: an in-memory one stands in for it.
+jest.mock('@/shared/services', () => jest.requireActual('@/test/fakeServices').fakeServicesModule());
 
 // The variant comes from the env file Expo loads; tests set the same variable.
 const original = process.env.EXPO_PUBLIC_APP_VARIANT;
-beforeEach(() => freezeToday(TODAY));
+beforeEach(() => {
+  resetFakeServices();
+  freezeToday(TODAY);
+});
 afterEach(() => {
   // Assigning `undefined` would store the string "undefined": unset it instead.
   if (original === undefined) delete process.env.EXPO_PUBLIC_APP_VARIANT;

@@ -1,10 +1,12 @@
 import { errorBodySchema, listActivitiesResponseSchema } from '@foulee/contracts';
+import { services } from '@/shared/services';
+import type { HttpResponse } from '@/shared/services/http/HttpClient';
 import { fromSummary, type Activity } from '../domain/activity';
 import type { BffAccess } from '../domain/bffAccess';
 
 /**
- * Client of the BFF (ADR 0005, 0006): `GET /v1/activities`, parsed with the shared contracts so an
- * incompatible BFF fails here instead of writing bad data to the phone.
+ * The BFF's API (ADR 0005, 0006), reached through the HTTP service: `GET /v1/activities`, parsed with
+ * the shared contracts so an incompatible BFF fails here instead of writing bad data to the phone.
  */
 
 /** Why an import failed. Each reason gets its own message on screen. */
@@ -21,19 +23,18 @@ export type ActivitiesPage = { activities: Activity[]; nextCursor: string | null
 /** Past this, an unreachable BFF (a laptop asleep, a captive Wi-Fi) is reported as a network failure. */
 const TIMEOUT_MS = 20_000;
 
-async function request(url: string, { token }: BffAccess): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+async function request(url: string, { token }: BffAccess): Promise<HttpResponse> {
   try {
-    return await fetch(url, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, signal: controller.signal });
+    return await services.http.request({
+      method: 'GET',
+      url,
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+      timeoutMs: TIMEOUT_MS,
+    });
   } catch {
     throw new BffError('network');
-  } finally {
-    clearTimeout(timer);
   }
 }
-
-const json = (response: Response): Promise<unknown> => response.json().catch(() => null);
 
 function failureOf(body: unknown): ImportFailure {
   const parsed = errorBodySchema.safeParse(body);
@@ -45,9 +46,8 @@ function failureOf(body: unknown): ImportFailure {
 export async function fetchActivitiesSince(access: BffAccess, since: string | null): Promise<ActivitiesPage> {
   const query = since === null ? '' : `?since=${encodeURIComponent(since)}`;
   const response = await request(`${access.bffUrl}/v1/activities${query}`, access);
-  const body = await json(response);
-  if (!response.ok) throw new BffError(failureOf(body));
-  const page = listActivitiesResponseSchema.safeParse(body);
+  if (!response.ok) throw new BffError(failureOf(response.body));
+  const page = listActivitiesResponseSchema.safeParse(response.body);
   if (!page.success) throw new BffError('unexpected');
   return { activities: page.data.activities.map(fromSummary), nextCursor: page.data.nextCursor };
 }

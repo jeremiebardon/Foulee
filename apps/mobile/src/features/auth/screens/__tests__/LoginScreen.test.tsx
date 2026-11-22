@@ -1,17 +1,17 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
-import Storage from 'expo-sqlite/kv-store';
 import { Txt } from '@/shared/ui/kit';
+import { resetFakeServices } from '@/test/fakeServices';
 import type { AuthGateway } from '../../domain/auth';
 import { AuthProvider, useAuth } from '../../components/AuthProvider';
 import { authGateway } from '../../data/gateway';
 import { LoginScreen } from '../LoginScreen';
 
-// The session store is native SQLite, absent under Jest: an in-memory store stands in for it.
-jest.mock('expo-sqlite/kv-store', () => jest.requireActual('@/test/memoryKvStore'));
+// The session is kept in the key-value store service: an in-memory one stands in for native SQLite.
+jest.mock('@/shared/services', () => jest.requireActual('@/test/fakeServices').fakeServicesModule());
 
 // The variant comes from the env file Expo loads; tests set the same variable.
 const original = process.env.EXPO_PUBLIC_APP_VARIANT;
-beforeEach(() => Storage.clearSync());
+beforeEach(resetFakeServices);
 afterEach(() => {
   process.env.EXPO_PUBLIC_APP_VARIANT = original;
   jest.restoreAllMocks();

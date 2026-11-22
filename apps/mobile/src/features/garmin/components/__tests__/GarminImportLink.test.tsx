@@ -1,12 +1,16 @@
 import { screen, userEvent } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
+import { resetFakeServices } from '@/test/fakeServices';
 import { forgetBffToken, saveBffToken } from '../../data/bffAccess.store';
 import { GarminImportLink } from '../GarminImportLink';
 
-jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));
+jest.mock('@/shared/services', () => jest.requireActual('@/test/fakeServices').fakeServicesModule());
 
 const original = process.env.EXPO_PUBLIC_BFF_URL;
-beforeEach(() => forgetBffToken());
+beforeEach(async () => {
+  resetFakeServices();
+  await forgetBffToken();
+});
 afterEach(() => {
   if (original === undefined) delete process.env.EXPO_PUBLIC_BFF_URL;
   else process.env.EXPO_PUBLIC_BFF_URL = original;
