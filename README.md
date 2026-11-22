@@ -43,18 +43,21 @@ src/
     dashboard/            Stats (pure) + screen
   shared/
     lib/                  Dates, formatting/parsing, ids
+    services/             HTTP, secure store and key-value store: interfaces and their adapters
     ui/                   Theme + UI kit (Button, Field, Chips, Sheet, Stepper…)
 ```
 
-Each feature keeps three layers in flat files:
+Each feature is split by role into folders, in dependency order. A file imports its own folder and the ones before it:
 
-| File | Layer | Depends on |
+| Folder | Role | Depends on |
 | --- | --- | --- |
-| `workout.ts`, `plan.ts`, `stats.ts` | Domain: types and pure rules, unit-tested | nothing (no React, no DB) |
-| `*.repository.ts` | Data: live-query hooks for reads, functions for writes | domain, `db` |
-| `*Screen.tsx` | UI | repository, domain, `shared/ui` |
+| `domain/` | Types and pure rules, unit-tested | nothing (no React, no DB) |
+| `data/` | `*.repository.ts` (live-query hooks for reads, functions for writes), BFF and storage access | domain, `db`, `shared/services` |
+| `hooks/` | React hooks over data, no JSX | data, domain |
+| `components/` | Views shared by screens | hooks, data, domain, `shared/ui` |
+| `screens/` | One per route | everything above |
 
-Dependencies flow one way: `workouts ← plans ← calendar, dashboard`.
+Dependencies flow one way: `workouts ← plans ← calendar, dashboard`. HTTP, secure storage and key-value storage go through `shared/services`. See ADR 0008.
 
 ## Navigation
 

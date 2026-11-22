@@ -35,7 +35,11 @@ Installs are isolated (pnpm's default, supported by Expo since SDK 54), so a nat
 
 ## Tests
 
-Every test file lives in a `__tests__` folder next to the code it tests: `src/features/plans/__tests__/plan.test.ts` tests `src/features/plans/plan.ts`. The one exception is end-to-end: the Maestro flows stay in `apps/mobile/.maestro/`. Shared test helpers (fakes, fixtures) may stay in `apps/mobile/src/test/`. Jest only runs files under `__tests__`, and lint (`@foulee/eslint-config`) fails a `*.test.*` or `*.spec.*` file anywhere else.
+Every test file lives in a `__tests__` folder next to the code it tests: `src/features/plans/domain/__tests__/plan.test.ts` tests `src/features/plans/domain/plan.ts`. The one exception is end-to-end: the Maestro flows stay in `apps/mobile/.maestro/`. Shared test helpers (fakes, fixtures) may stay in `apps/mobile/src/test/`. Jest only runs files under `__tests__`, and lint (`@foulee/eslint-config`) fails a `*.test.*` or `*.spec.*` file anywhere else.
+
+## Mobile layout
+
+Each feature in `apps/mobile/src/features/` is split into `domain/`, `data/`, `hooks/`, `components/` and `screens/`, and a file imports only its own folder and the ones before it in that order. HTTP, secure storage and key-value storage go through `services` from `@/shared/services`; only the adapters in `src/shared/services/` import `expo-secure-store` or `expo-sqlite/kv-store`, or call `fetch`. Lint enforces both. See ADR 0008 (`docs/adr/0008-mobile-feature-layout-by-role.md`).
 
 ## Navigation & Routing
 
