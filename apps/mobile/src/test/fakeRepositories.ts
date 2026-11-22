@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import { activityRun, type Activity } from '@/features/garmin/domain';
+import { linking, unlinking, type Activity } from '@/features/garmin/domain';
 import { toSessionViews, type DoneRun, type Plan, type Session } from '@/features/plans/domain';
 import type { Workout } from '@/features/workouts/domain';
 
@@ -53,13 +53,13 @@ export const fakePlanRepository = () => ({
 
 const patchActivity = (garminActivityId: string, patch: Partial<Activity>) =>
   data.activities.map((a) => (a.garminActivityId === garminActivityId ? { ...a, ...patch } : a));
-const patchSession = (id: string | null, done: DoneRun | null) =>
-  data.sessions.map((s) => (s.id === id ? { ...s, doneMeters: done?.meters ?? null, doneSeconds: done?.seconds ?? null } : s));
+const patchSession = (id: string | null, patch: Pick<Session, 'doneMeters' | 'doneSeconds'>) =>
+  data.sessions.map((s) => (s.id === id ? { ...s, ...patch } : s));
 
 /**
  * Writes behave like the real repository. Imports: an Activity already stored, by Garmin activity
  * id, is skipped, the cursor moves on, and the number of Activities actually added is returned.
- * Links: the Session is done with the Activity's run, and undone when unlinked.
+ * Links: what the garmin domain says linking and unlinking write (`linking`, `unlinking`).
  */
 export const fakeActivityRepository = () => ({
   useActivities: () => useData().activities,
@@ -70,15 +70,16 @@ export const fakeActivityRepository = () => ({
     change({ activities: [...data.activities, ...added], importCursor: nextCursor ?? data.importCursor });
     return added.length;
   }),
-  linkActivity: jest.fn((activity: Activity, sessionId: string) =>
-    change({
-      activities: patchActivity(activity.garminActivityId, { sessionId, declinedSessionId: null }),
-      sessions: patchSession(sessionId, activityRun(activity)),
-    }),
-  ),
-  unlinkActivity: jest.fn(({ garminActivityId, sessionId }: Activity) =>
-    change({ activities: patchActivity(garminActivityId, { sessionId: null, declinedSessionId: sessionId }), sessions: patchSession(sessionId, null) }),
-  ),
+  linkActivity: jest.fn((activity: Activity, sessionId: string) => {
+    const session = data.sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    const writes = linking(activity, session);
+    change({ activities: patchActivity(activity.garminActivityId, writes.activity), sessions: patchSession(sessionId, writes.session) });
+  }),
+  unlinkActivity: jest.fn((activity: Activity) => {
+    const writes = unlinking(activity);
+    change({ activities: patchActivity(activity.garminActivityId, writes.activity), sessions: patchSession(activity.sessionId, writes.session) });
+  }),
   declineSuggestion: jest.fn(({ garminActivityId }: Activity, sessionId: string) =>
     change({ activities: patchActivity(garminActivityId, { declinedSessionId: sessionId }) }),
   ),

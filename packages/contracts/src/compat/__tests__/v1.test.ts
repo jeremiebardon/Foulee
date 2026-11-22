@@ -29,7 +29,7 @@ describe('v1Contract', () => {
     const exported = Object.entries(contracts).filter(([, value]) => value instanceof z.ZodType);
     expect(exported.length).toBeGreaterThan(0);
     for (const [name, schema] of exported) {
-      const jsonSchema = toJsonSchemaSnapshot({ [name]: schema as z.ZodType })[name];
+      const jsonSchema = toJsonSchemaSnapshot({ [name]: { direction: 'response', schema: schema as z.ZodType } })[name].schema;
       expect({ name, covered: contains(snapshot, jsonSchema) }).toEqual({ name, covered: true });
     }
   });

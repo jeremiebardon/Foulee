@@ -1,6 +1,6 @@
 import { screen, userEvent } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
-import { forgetBffToken, saveBffToken } from '../bffAccess';
+import { forgetBffToken, saveBffToken } from '../bffAccess.client';
 import { GarminImportLink } from '../GarminImportLink';
 
 jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));

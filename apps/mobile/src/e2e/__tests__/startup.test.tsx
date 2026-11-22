@@ -17,11 +17,11 @@ const gateway: AuthGateway = { requestCode: jest.fn(), verifyCode: jest.fn() };
 
 function Who() {
   const { session } = useAuth();
-  const { available } = useGarminImport();
+  const { access } = useGarminImport();
   return (
     <>
       <Txt>{session ? `Connecté : ${session.email}` : 'Déconnecté'}</Txt>
-      <Txt>{available ? 'Import Garmin prêt' : 'Import Garmin absent'}</Txt>
+      <Txt>{access ? 'Import Garmin prêt' : 'Import Garmin absent'}</Txt>
     </>
   );
 }
@@ -79,8 +79,8 @@ describe('e2e launch link at startup', () => {
   it('sets up the Garmin import against the in-app BFF stub when the link asks for it', async () => {
     await launchWith('foulee://e2e?seed=demo&signedIn=true&bff=stub', true);
     expect(screen.getByText('Import Garmin prêt')).toBeOnTheScreen();
-    const page = await fetchActivitiesSince({ bffUrl: 'https://bff.example', token: 'any', since: null });
-    expect(page.activities.map((a) => a.garminActivityId)).toEqual(['e2e-1']);
+    const page = await fetchActivitiesSince({ bffUrl: 'https://bff.example', token: 'any' }, null);
+    expect(page.activities.map((a) => a.garminActivityId)).toEqual(['e2e-thursday', 'e2e-1']);
   });
 
   it('leaves the Garmin import alone otherwise', async () => {

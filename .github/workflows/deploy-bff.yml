@@ -55,13 +55,11 @@ jobs:
             echo "bff=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          LIST=$(TURBO_SCM_BASE="$BEFORE" pnpm turbo ls --affected --output=json 2>/dev/null)
-          echo "$LIST"
-          if echo "$LIST" | node -e 'const t=require("fs").readFileSync(0,"utf8").replace(/^[^{]*/,"");process.exit(JSON.parse(t).packages.items.some((p)=>p.name==="bff")?0:1)'; then
-            echo "bff=true" >> "$GITHUB_OUTPUT"
-          else
+          # Shared with pr-checks.yml.
+          AFFECTED=$(node packages/release-tools/bin/affected.js --base "$BEFORE" bff=bff)
+          echo "$AFFECTED" >> "$GITHUB_OUTPUT"
+          if [ "$AFFECTED" = "bff=false" ]; then
             echo "The BFF is not affected: nothing to deploy."
-            echo "bff=false" >> "$GITHUB_OUTPUT"
           fi
 
       # The image's build context: the BFF and the workspace packages it depends on, nothing else.

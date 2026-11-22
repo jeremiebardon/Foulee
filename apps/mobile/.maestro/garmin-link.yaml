@@ -1,10 +1,12 @@
 appId: com.jbardon.foulee
-name: Import an Activity from the BFF stub and link it to a Session
+name: Import Activities from the BFF stub, decline a suggestion, link and unlink an Activity
 tags:
   - garmin
 ---
-# `bff=stub`: the e2e build answers the import itself (src/e2e/bffStub.ts) with one 6 km run this
-# morning, and saves an access token so the import shows. The demo plan gives Sessions to link to.
+# `bff=stub`: the e2e build answers the import itself (src/e2e/bffStub.ts) with a 10 km run last
+# Thursday and a 6 km run this morning, and saves an access token so the import shows. The demo
+# plan gives Sessions to link to, one every Thursday. Every step selects by test ID; a card's
+# elements are picked inside it with `childOf`, since both cards carry the same test IDs.
 - runFlow:
     file: subflows/launch.yaml
     env:
@@ -16,18 +18,58 @@ tags:
     visible:
       id: garmin-import-added
     timeout: 10000
+
+# Last Thursday's run: the Session planned that day is suggested. Declining keeps it unplanned.
+- scrollUntilVisible:
+    element:
+      id: garmin-activity-e2e-thursday
 - assertVisible:
-    id: garmin-activity-e2e-1
+    id: activity-suggestion
+    childOf:
+      id: garmin-activity-e2e-thursday
+- tapOn:
+    id: activity-decline-link
+    childOf:
+      id: garmin-activity-e2e-thursday
+- assertNotVisible:
+    id: activity-suggestion
+    childOf:
+      id: garmin-activity-e2e-thursday
 - assertVisible:
     id: activity-unplanned
-# Link by hand: today may be a rest day, so a suggestion is not always there. The nearest Session comes first.
+    childOf:
+      id: garmin-activity-e2e-thursday
+
+# This morning's run, linked by hand: today may be a rest day, so a suggestion is not always
+# there. The nearest Session comes first.
+- scrollUntilVisible:
+    element:
+      id: garmin-activity-e2e-1
+    direction: UP
 - tapOn:
     id: activity-link-manual
+    childOf:
+      id: garmin-activity-e2e-1
 - tapOn:
     id: activity-link-candidate
     index: 0
 - assertVisible:
     id: activity-linked
-    text: '✓ .*'
+    childOf:
+      id: garmin-activity-e2e-1
 - assertNotVisible:
     id: activity-unplanned
+    childOf:
+      id: garmin-activity-e2e-1
+
+# Unlinking makes it an Unplanned Activity again.
+- tapOn:
+    id: activity-unlink
+    childOf:
+      id: garmin-activity-e2e-1
+- assertVisible:
+    id: activity-unplanned
+    childOf:
+      id: garmin-activity-e2e-1
+- assertNotVisible:
+    id: activity-linked

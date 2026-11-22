@@ -55,6 +55,8 @@ describe('dashboard stats with Garmin Activities', () => {
     averageHeartRateBpm: null,
     sessionId,
     declinedSessionId: null,
+    handLoggedMeters: null,
+    handLoggedSeconds: null,
   });
 
   it('counts Unplanned Activities as running done, on the local day they were run', () => {

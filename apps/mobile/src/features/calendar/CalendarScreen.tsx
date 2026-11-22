@@ -4,7 +4,7 @@ import { formatLongDate, formatMonth, fromISO, monthGrid, todayISO, toISO, type 
 import { formatClock, formatDistance, formatPace } from '@/shared/lib/format';
 import { Button, Card, Empty, Row, Screen, Txt } from '@/shared/ui/kit';
 import { color, space } from '@/shared/ui/theme';
-import { activityDate, ActivityCard, unlinkActivity, useLinking } from '@/features/garmin';
+import { activityDate, ActivityCard, unaccountedActivities, unlinkActivity, useLinking } from '@/features/garmin';
 import { logRun, planEnd, PlanPicker, useSelectedPlan, useSessionViews, type SessionView } from '@/features/plans';
 import { CATEGORY_COLOR, WorkoutSummary } from '@/features/workouts';
 import { LogRunSheet } from './LogRunSheet';
@@ -28,8 +28,8 @@ export function CalendarScreen() {
   const ofDay = (d: ISODate) => views.filter((v) => v.date === d);
   // A Session shown here stands for the Activity that completes it; any other Activity shows on its own.
   const linkedTo = new Map(linking.activities.flatMap((a) => (a.sessionId === null ? [] : [[a.sessionId, a] as const])));
-  const shown = new Set(views.map((v) => v.session.id));
-  const activitiesOf = (d: ISODate) => linking.activities.filter((a) => activityDate(a) === d && !(a.sessionId !== null && shown.has(a.sessionId)));
+  const unaccounted = unaccountedActivities(linking.activities, views);
+  const activitiesOf = (d: ISODate) => unaccounted.filter((a) => activityDate(a) === d);
 
   return (
     <Screen testID="calendar">

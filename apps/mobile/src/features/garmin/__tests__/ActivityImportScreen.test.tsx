@@ -5,7 +5,7 @@ import type { Activity } from '../activity';
 import { saveImport } from '../activity.repository';
 import { ActivityImportScreen } from '../ActivityImportScreen';
 import { BffError, fetchActivitiesSince, type ActivitiesPage } from '../bff.client';
-import { forgetBffToken, saveBffToken } from '../bffAccess';
+import { forgetBffToken, saveBffToken } from '../bffAccess.client';
 // The mock seams of screen tests: the repositories (ADR 0003) and the BFF client.
 // The two mock seams of screen tests: the repository (ADR 0003) and the BFF client.
 jest.mock('@/features/plans/plan.repository', () => jest.requireActual('@/test/fakeRepositories').fakePlanRepository());
@@ -35,6 +35,8 @@ const activity = (garminActivityId: string, startTime: string, distanceMeters: n
   averageHeartRateBpm,
   sessionId: null,
   declinedSessionId: null,
+  handLoggedMeters: null,
+  handLoggedSeconds: null,
 });
 /** Tuesday 17 November, 8 km in 44 min. */
 const tuesdayRun = activity('1001', '2026-11-17T07:30:00+01:00', 8000, 2640, 148);
@@ -56,7 +58,7 @@ describe('importing Activities', () => {
     await renderImport();
 
     expect(await screen.findByText('1 nouvelle activité.')).toBeOnTheScreen();
-    expect(fetchActivitiesSince).toHaveBeenCalledWith({ bffUrl: 'http://localhost:3000', token: 'the-token', since: null });
+    expect(fetchActivitiesSince).toHaveBeenCalledWith({ bffUrl: 'http://localhost:3000', token: 'the-token' }, null);
     expect(screen.getByText('mardi 17 novembre')).toBeOnTheScreen();
     expect(screen.getByText('8 km · 44 min · 5:30/km · 148 bpm')).toBeOnTheScreen();
   });
@@ -70,7 +72,7 @@ describe('importing Activities', () => {
     await pullToRefresh();
 
     expect(await screen.findByText('1 nouvelle activité.')).toBeOnTheScreen();
-    expect(fetchActivitiesSince).toHaveBeenLastCalledWith({ bffUrl: 'http://localhost:3000', token: 'the-token', since: '2026-11-17T06:30:00.000Z' });
+    expect(fetchActivitiesSince).toHaveBeenLastCalledWith({ bffUrl: 'http://localhost:3000', token: 'the-token' }, '2026-11-17T06:30:00.000Z');
     expect(screen.getAllByText(/novembre$/).map((day) => day.props.children)).toEqual(['jeudi 19 novembre', 'mardi 17 novembre']);
     expect(screen.getByText('10,5 km · 53 min · 5:00/km')).toBeOnTheScreen();
   });

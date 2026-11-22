@@ -83,7 +83,7 @@ The e2e flag can never ship. `app.config.ts` throws when `EXPO_PUBLIC_E2E=true` 
 `.github/workflows/pr-checks.yml` runs on every pull request and every push to `main`:
 
 1. Installs with `pnpm install --frozen-lockfile` (pnpm store cached).
-2. Asks Turbo which projects are affected relative to the base branch (`turbo ls --affected`).
+2. Asks Turbo which projects are affected relative to the base branch (`turbo ls --affected`, through `packages/release-tools/bin/affected.js`, which the BFF deploy shares).
 3. Runs `expo-doctor` in `apps/mobile` only when `mobile` is affected.
 4. Runs `turbo run lint typecheck test --affected`.
 5. On pull requests, runs the **changeset check** (`packages/release-tools/bin/check-changeset.js`): it fails when the pull request changes anything under `apps/mobile` or `packages/contracts` (the app bundles the contracts) without adding a file to `.changeset/`. Then `changeset status` validates the changesets themselves. The Version Packages pull request is exempt, since it consumes the changesets.
@@ -190,7 +190,7 @@ Install `flyctl` (<https://fly.io/docs/flyctl/install/>) and run the commands fr
 
 `.github/workflows/deploy-bff.yml` runs on every push to `main`:
 
-1. It asks Turbo whether the BFF is affected compared with the previous tip of `main` (`turbo ls --affected`, the same detection as the PR check). It is when the push changes `apps/bff`, a workspace package the BFF depends on (`packages/contracts`, the shared config), the BFF's dependencies in `pnpm-lock.yaml`, or a root file Turbo treats as global (`turbo.json`, the root `package.json`). A push that changes only `apps/mobile`, docs or other workflows deploys nothing; the job still runs and says so.
+1. It asks Turbo whether the BFF is affected compared with the previous tip of `main` (`turbo ls --affected` through `packages/release-tools/bin/affected.js`, the same detection as the PR check). It is when the push changes `apps/bff`, a workspace package the BFF depends on (`packages/contracts`, the shared config), the BFF's dependencies in `pnpm-lock.yaml`, or a root file Turbo treats as global (`turbo.json`, the root `package.json`). A push that changes only `apps/mobile`, docs or other workflows deploys nothing; the job still runs and says so.
 2. It runs `pnpm turbo prune bff --docker`, which writes `out/`: the BFF and the packages it depends on, a pruned lockfile, and nothing of the mobile app.
 3. `fly deploy` builds `apps/bff/Dockerfile` on Fly's remote builder with `out/` as build context, tags the image with the commit (`registry.fly.io/foulee-bff:<sha>`), bakes the same SHA into the image (`GIT_SHA`), and replaces the machine. The deploy waits for the new machine to pass its health check (`GET /health`, in `fly.toml`) and fails if it does not.
 4. It calls `https://foulee-bff.fly.dev/health` until it reports the pushed commit, and fails otherwise.

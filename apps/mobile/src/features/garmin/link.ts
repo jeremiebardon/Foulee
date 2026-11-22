@@ -1,5 +1,5 @@
 import { diffDays } from '@/shared/lib/dates';
-import type { DoneRun, SessionView } from '@/features/plans/domain';
+import type { Session, SessionView } from '@/features/plans/domain';
 import { activityDate, type Activity } from './activity';
 
 /** The Sessions already completed by an Activity: a Session has at most one. */
@@ -39,8 +39,41 @@ export function linkCandidates(activity: Activity, activities: Activity[], views
     .sort((a, b) => distance(a) - distance(b) || a.date.localeCompare(b.date));
 }
 
-/** What linking records on the Session: the Activity's distance and duration, as logging the run by hand would. */
-export const activityRun = (activity: Pick<Activity, 'distanceMeters' | 'durationSeconds'>): DoneRun => ({
-  meters: Math.round(activity.distanceMeters),
-  seconds: Math.round(activity.durationSeconds),
-});
+/**
+ * The Activities that count on their own beside the Sessions shown: an Unplanned Activity, or one
+ * whose Session is not among them (beyond the end of a shortened Plan). A linked Activity is
+ * accounted for by its Session, which holds its distance and duration, so it is never counted twice.
+ */
+export function unaccountedActivities(activities: Activity[], shown: SessionView[]): Activity[] {
+  const shownIds = new Set(shown.map((view) => view.session.id));
+  return activities.filter((a) => a.sessionId === null || !shownIds.has(a.sessionId));
+}
+
+/** The fields of an Activity that linking and unlinking change. */
+type ActivityLink = Pick<Activity, 'sessionId' | 'declinedSessionId' | 'handLoggedMeters' | 'handLoggedSeconds'>;
+/** What was run on a Session, as stored: both set, or both `null` while it is not done. */
+type SessionDone = Pick<Session, 'doneMeters' | 'doneSeconds'>;
+
+/**
+ * What linking writes. The Session is done with the Activity's distance and duration, as logging
+ * the run by hand would; the Activity keeps whatever had been logged by hand on the Session, so
+ * unlinking can give it back.
+ */
+export function linking(activity: Activity, session: Pick<Session, 'id'> & SessionDone): { activity: ActivityLink; session: SessionDone } {
+  return {
+    activity: { sessionId: session.id, declinedSessionId: null, handLoggedMeters: session.doneMeters, handLoggedSeconds: session.doneSeconds },
+    session: { doneMeters: Math.round(activity.distanceMeters), doneSeconds: Math.round(activity.durationSeconds) },
+  };
+}
+
+/**
+ * What unlinking writes. The Activity is an Unplanned Activity again, its Session no longer
+ * suggested for it; the Session gets back what had been logged on it by hand before the link,
+ * or is no longer done.
+ */
+export function unlinking(activity: Activity): { activity: ActivityLink; session: SessionDone } {
+  return {
+    activity: { sessionId: null, declinedSessionId: activity.sessionId, handLoggedMeters: null, handLoggedSeconds: null },
+    session: { doneMeters: activity.handLoggedMeters, doneSeconds: activity.handLoggedSeconds },
+  };
+}

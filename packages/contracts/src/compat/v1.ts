@@ -1,14 +1,17 @@
-import type { z } from 'zod';
 import { listActivitiesQuerySchema, listActivitiesResponseSchema } from '../activities';
 import { errorBodySchema } from '../errors';
+import { healthResponseSchema } from '../health';
+import type { Contract } from './json-schema';
 
 /**
- * Everything that crosses the wire under `/v1`, keyed by where it travels. CI exports it to JSON
- * Schema and compares it with `main` (see the README). Add new endpoints here; a key removed or
- * renamed counts as a removed endpoint.
+ * Everything that crosses the wire under `/v1` (and the unversioned `/health` beside it), keyed by
+ * where it travels, with the direction it travels in (which decides the rule it is checked
+ * against). CI exports it to JSON Schema and compares it with `main` (see the README). Add new
+ * endpoints here; a key removed or renamed counts as a removed endpoint.
  */
-export const v1Contract: Record<string, z.ZodType> = {
-  'GET /v1/activities query': listActivitiesQuerySchema,
-  'GET /v1/activities response': listActivitiesResponseSchema,
-  'error response body': errorBodySchema,
+export const v1Contract: Contract = {
+  'GET /v1/activities query': { direction: 'request', schema: listActivitiesQuerySchema },
+  'GET /v1/activities response': { direction: 'response', schema: listActivitiesResponseSchema },
+  'error response body': { direction: 'response', schema: errorBodySchema },
+  'GET /health response': { direction: 'response', schema: healthResponseSchema },
 };

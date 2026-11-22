@@ -1,6 +1,6 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 import { failNextWrite } from '@/test/memorySecureStore';
-import { forgetBffToken, useGarminImport } from '../bffAccess';
+import { forgetBffToken, useGarminImport } from '../bffAccess.client';
 import { SettingsScreen } from '../SettingsScreen';
 import { Txt } from '@/shared/ui/kit';
 
@@ -17,8 +17,8 @@ afterEach(() => {
 
 /** What the rest of the app sees: whether the Garmin import shows. */
 function ImportShown() {
-  const { available, token } = useGarminImport();
-  return <Txt>{available ? `Import affiché, jeton « ${token} »` : 'Import caché'}</Txt>;
+  const { access, token } = useGarminImport();
+  return <Txt>{access ? `Import affiché, jeton « ${token} »` : 'Import caché'}</Txt>;
 }
 
 async function renderSettings(bffUrl: string | null = 'http://localhost:3000') {

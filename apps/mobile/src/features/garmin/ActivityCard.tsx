@@ -1,33 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { formatLongDate } from '@/shared/lib/dates';
 import { formatDistance, formatDuration, formatPace } from '@/shared/lib/format';
 import { Button, Card, Row, Sheet, Txt } from '@/shared/ui/kit';
 import { color } from '@/shared/ui/theme';
-import { SessionRow, useSelectedPlan, useSessionViews, type SessionView } from '@/features/plans';
+import { SessionRow, type SessionView } from '@/features/plans';
 import { activityDate, type Activity } from './activity';
-import { declineSuggestion, linkActivity, unlinkActivity, useActivities } from './activity.repository';
-import { linkCandidates, suggestions } from './link';
-
-/** What links Activities to Sessions, read once for a whole list of Activity cards. */
-export function useLinking() {
-  const activities = useActivities();
-  const views = useSessionViews();
-  const planId = useSelectedPlan()?.id ?? null;
-  return useMemo(() => {
-    const suggested = suggestions(activities, views, planId);
-    const viewById = new Map(views.map((v) => [v.session.id, v]));
-    return {
-      activities,
-      suggestionFor: (a: Activity) => suggested.get(a.garminActivityId),
-      linkedView: (a: Activity) => (a.sessionId === null ? undefined : viewById.get(a.sessionId)),
-      candidatesFor: (a: Activity) => linkCandidates(a, activities, views, planId),
-    };
-  }, [activities, views, planId]);
-}
-export type Linking = ReturnType<typeof useLinking>;
+import { declineSuggestion, linkActivity, unlinkActivity } from './activity.repository';
+import type { Linking } from './useLinking';
 
 /**
- * An imported run and its link to the plan: the Session it completes, with a way to unlink it, or,
+ * An imported Activity and its link to the plan: the Session it completes, with a way to unlink it, or,
  * for an Unplanned Activity, the Session planned that day to confirm or decline, and any Session
  * of the selected Plan to pick by hand.
  */

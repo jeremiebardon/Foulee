@@ -14,8 +14,11 @@ const expoConfig = require('@foulee/eslint-config/expo');
  * - inside a feature, import its own files relatively (`./plan`); `../` would leave it
  *   (`../../` from the feature's __tests__ folder);
  * - dependencies point one way: workouts <- plans <- garmin <- calendar, dashboard (FEATURE_DEPS);
- * - domain files (the feature's plain .ts files, except repositories and index.ts)
- *   import no React, React Native or database code;
+ * - domain files (the feature's plain .ts files, except index.ts and the impure modules below)
+ *   import no React, React Native, Expo module or database code, and call no network;
+ * - impure modules, named for what they reach: `*.repository.ts` reads and writes the database,
+ *   `*.client.ts` talks to anything else outside the app (the BFF, the secure store), and a hook
+ *   module, `use*.ts`, composes React hooks with no JSX. Screens and components are `.tsx`;
  * - shared code imports no feature.
  * Route files in src/app are not exempt: they re-export screens from the entry points.
  * Checked against deliberate violations by __tests__/lint-boundaries.test.js.
@@ -53,8 +56,15 @@ const testParentImport = {
   message: "'../../' leaves this feature: import other features through their entry point, e.g. '@/features/plans'.",
 };
 const impureDomainImport = {
-  regex: '^(react|react-native|expo-sqlite|drizzle-orm)(/|$)|^@/db(/|$)',
-  message: 'Domain files stay pure: no React, React Native or database. Use a screen or a repository.',
+  regex: '^(react|react-native|expo(-[a-z0-9-]+)?|drizzle-orm)(/|$)|^@/db(/|$)',
+  message: 'Domain files stay pure: no React, React Native, Expo module or database. Use a screen, a hook, a repository or a client.',
+};
+const noNetworkInDomain = {
+  'no-restricted-globals': [
+    'error',
+    { name: 'fetch', message: 'Domain files stay pure: the network goes through a client (*.client.ts).' },
+    { name: 'XMLHttpRequest', message: 'Domain files stay pure: the network goes through a client (*.client.ts).' },
+  ],
 };
 const fullEntryFromDomain = {
   regex: '^@/features/[^/]+$',
@@ -84,8 +94,8 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
     { files: [`src/features/${feature}/__tests__/**`], rules: restrict(deepImport, testParentImport, forbiddenFeatures) },
     {
       files: [`src/features/${feature}/*.ts`],
-      ignores: ['**/*.repository.ts', '**/index.ts'],
-      rules: restrict(deepImport, parentImport, forbiddenFeatures, impureDomainImport, fullEntryFromDomain),
+      ignores: ['**/*.repository.ts', '**/*.client.ts', '**/use*.ts', '**/index.ts'],
+      rules: { ...restrict(deepImport, parentImport, forbiddenFeatures, impureDomainImport, fullEntryFromDomain), ...noNetworkInDomain },
     },
   ];
 });

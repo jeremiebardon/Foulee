@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-/** Machine-readable error codes of the v1 API. Additive-only: never remove or rename one. */
+/**
+ * Machine-readable error codes of the v1 API. The BFF sends them and installed apps parse them, so
+ * the list is fixed inside `/v1`: a new code is a value an older app rejects (see the README).
+ */
 export const errorCodeSchema = z.enum([
   'unauthorized',
   'invalid_request',

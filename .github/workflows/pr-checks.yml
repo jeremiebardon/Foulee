@@ -55,27 +55,12 @@ jobs:
           fi # else: new branch or rewritten history, check everything
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           if [ -n "$BASE" ]; then
-            export TURBO_SCM_BASE="$BASE"
             echo "flag=--affected" >> "$GITHUB_OUTPUT"
-            LIST=$(pnpm turbo ls --affected --output=json 2>/dev/null)
           else
             echo "flag=" >> "$GITHUB_OUTPUT"
-            LIST=$(pnpm turbo ls --output=json 2>/dev/null)
           fi
-          echo "$LIST"
-          affected() {
-            echo "$LIST" | node -e 'const t=require("fs").readFileSync(0,"utf8").replace(/^[^{]*/,"");process.exit(JSON.parse(t).packages.items.some((p)=>p.name===process.argv[1])?0:1)' "$1"
-          }
-          if affected mobile; then
-            echo "mobile=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "mobile=false" >> "$GITHUB_OUTPUT"
-          fi
-          if affected @foulee/contracts; then
-            echo "contracts=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "contracts=false" >> "$GITHUB_OUTPUT"
-          fi
+          # Shared with deploy-bff.yml: an empty base counts every package as affected.
+          node packages/release-tools/bin/affected.js --base "$BASE" mobile=mobile contracts=@foulee/contracts >> "$GITHUB_OUTPUT"
           # The contract check always compares with main: the previous tip on a push to main,
           # origin/main otherwise (whatever branch a pull request targets).
           if [ "$EVENT" = "push" ] && [ -n "$BASE" ]; then
