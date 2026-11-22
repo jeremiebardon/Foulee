@@ -39,8 +39,9 @@ yarn-error.*
 /ios
 /android
 
-# Turborepo
+# Turborepo (.turbo cache; out/ is the output of `turbo prune`, the BFF image's build context)
 .turbo/
+/out/
 
 # coverage
 coverage/
