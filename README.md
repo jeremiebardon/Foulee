@@ -39,6 +39,7 @@ src/
     auth/                 Port (AuthGateway), mock adapter, provider, login screen
     workouts/             Workout aggregate (steps + repeats), repository, list/editor
     plans/                Plan + sessions, repository, list/editor, plan picker
+    garmin/               Garmin import through the BFF: access token, activity list, linking to sessions
     calendar/             Month view, log-a-run sheet
     dashboard/            Stats (pure) + screen
   shared/
@@ -57,7 +58,7 @@ Each feature is split by role into folders, in dependency order. A file imports 
 | `components/` | Views shared by screens | hooks, data, domain, `shared/ui` |
 | `screens/` | One per route | everything above |
 
-Dependencies flow one way: `workouts ← plans ← calendar, dashboard`. HTTP, secure storage and key-value storage go through `shared/services`. See ADR 0008.
+Dependencies flow one way: `workouts ← plans ← garmin ← calendar, dashboard`. HTTP, secure storage and key-value storage go through `shared/services`. See ADR 0008.
 
 ## Navigation
 

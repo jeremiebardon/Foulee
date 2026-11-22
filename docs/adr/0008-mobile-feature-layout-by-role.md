@@ -15,12 +15,12 @@ The database is not behind a service. A feature's `data/*.repository.ts` stays t
 
 ## Consequences
 
-- `apps/mobile/eslint.config.js` enforces the layout, and `apps/mobile/__tests__/lint-*.test.js` prove each rule with an allowed and a forbidden import:
-  - the folder order inside a feature (a file outside the role folders is linted as a domain file until it is moved);
+- `apps/mobile/eslint.config.js` enforces the layout, and `apps/mobile/__tests__/lint-boundaries.test.js` prove each rule with an allowed and a forbidden import:
+  - the folder order inside a feature, including through a later folder's `index.ts`, and no folder imports the feature's own entry point (`..`, `../index`), which re-exports every folder (a file outside the role folders is linted as a domain file until it is moved);
   - no relative import leaves the feature, at any depth;
-  - `domain/` imports no React, React Native, Expo module, Drizzle or `@/db`, and calls no network;
-  - only the adapters in `src/shared/services/` import `expo-secure-store` or `expo-sqlite/kv-store`, or call `fetch` or `XMLHttpRequest`, including through `globalThis`, `window` or `self`. `src/e2e`, `src/devtools` and test code are exempt.
+  - `domain/` imports no React, React Native, Expo module, Drizzle, `@/db` or service, and calls no network;
+  - only the adapters in `src/shared/services/` import `expo-secure-store` or `expo-sqlite/kv-store` (or a path inside them), or call `fetch` or `XMLHttpRequest`, including through `globalThis`, `window` or `self`. Features import the services and their types from `@/shared/services` only, never from the files behind it. `src/e2e`, `src/devtools` and test code are exempt.
 - The one-way feature dependencies, the entry-point-only imports from outside a feature and `appConfig()` as the only reader of the environment are unchanged.
 - The coverage exclusion for repositories narrows from `**/*.repository.ts` to `src/features/*/data/*.repository.ts`: the same files, now named by where they live (ADR 0003).
 - Feature tests fake the services, with an in-memory fake per interface in `src/test/` wired through `jest.mock('@/shared/services', …)`. Only the adapters' tests know a library: `fetchHttpClient` is tested against a stubbed global `fetch`, and it reads `globalThis.fetch` on every call so the e2e BFF stub, which patches `fetch`, keeps working.
-- The interfaces have their own method names, not the libraries', and the secure and key-value stores stay synchronous, because `useSyncExternalStore` and the auth provider's first render read them synchronously.
+- The interfaces have their own method names, not the libraries', and the secure and key-value stores reads and writes stay synchronous (only `SecureStore.delete` is async), because `useSyncExternalStore` and the auth provider's first render read them synchronously.
