@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { db } from '@/db/client';
-import { activities, importCursors } from '@/db/schema';
+import { activities, importCursors, sessions } from '@/db/schema';
 import type { Activity } from './activity';
 import type { ActivitiesPage } from './bff.client';
+import { activityRun } from './link';
 
 // ---- Reads -----------------------------------------------------------------
 
@@ -34,3 +35,29 @@ export const saveImport = ({ activities: page, nextCursor }: ActivitiesPage): nu
     }
     return added;
   });
+
+/**
+ * Links an Activity to the Session it completes: the Session is done with the Activity's distance
+ * and duration, as when a run is logged by hand. The unique index on `session_id` refuses a
+ * second Activity for the same Session.
+ */
+export const linkActivity = (activity: Activity, sessionId: string) =>
+  db.transaction((tx) => {
+    const run = activityRun(activity);
+    tx.update(activities).set({ sessionId, declinedSessionId: null }).where(eq(activities.garminActivityId, activity.garminActivityId)).run();
+    tx.update(sessions).set({ doneMeters: run.meters, doneSeconds: run.seconds }).where(eq(sessions.id, sessionId)).run();
+  });
+
+/**
+ * Makes a linked Activity an Unplanned Activity again: its Session is no longer done, and is not
+ * suggested for it again.
+ */
+export const unlinkActivity = ({ garminActivityId, sessionId }: Activity) =>
+  db.transaction((tx) => {
+    tx.update(activities).set({ sessionId: null, declinedSessionId: sessionId }).where(eq(activities.garminActivityId, garminActivityId)).run();
+    if (sessionId !== null) tx.update(sessions).set({ doneMeters: null, doneSeconds: null }).where(eq(sessions.id, sessionId)).run();
+  });
+
+/** The runner declined the suggested Session: the Activity stays unplanned and the suggestion goes away. */
+export const declineSuggestion = ({ garminActivityId }: Activity, sessionId: string) =>
+  db.update(activities).set({ declinedSessionId: sessionId }).where(eq(activities.garminActivityId, garminActivityId)).run();

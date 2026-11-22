@@ -6,8 +6,10 @@ import { saveImport } from '../activity.repository';
 import { ActivityImportScreen } from '../ActivityImportScreen';
 import { BffError, fetchActivitiesSince, type ActivitiesPage } from '../bff.client';
 import { forgetBffToken, saveBffToken } from '../bffAccess';
-
+// The mock seams of screen tests: the repositories (ADR 0003) and the BFF client.
 // The two mock seams of screen tests: the repository (ADR 0003) and the BFF client.
+jest.mock('@/features/plans/plan.repository', () => jest.requireActual('@/test/fakeRepositories').fakePlanRepository());
+jest.mock('@/features/workouts/workout.repository', () => jest.requireActual('@/test/fakeRepositories').fakeWorkoutRepository());
 jest.mock('../activity.repository', () => jest.requireActual('@/test/fakeRepositories').fakeActivityRepository());
 jest.mock('../bff.client', () => ({ ...jest.requireActual('../bff.client'), fetchActivitiesSince: jest.fn() }));
 jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));
@@ -32,6 +34,7 @@ const activity = (garminActivityId: string, startTime: string, distanceMeters: n
   averagePaceSecondsPerKm: durationSeconds / (distanceMeters / 1000),
   averageHeartRateBpm,
   sessionId: null,
+  declinedSessionId: null,
 });
 /** Tuesday 17 November, 8 km in 44 min. */
 const tuesdayRun = activity('1001', '2026-11-17T07:30:00+01:00', 8000, 2640, 148);

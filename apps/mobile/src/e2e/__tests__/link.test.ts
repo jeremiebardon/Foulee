@@ -7,22 +7,22 @@ describe('e2e reset link', () => {
   });
 
   it('resets to an empty, signed-out app by default', () => {
-    expect(e2eStateFromLink('foulee://e2e', true)).toEqual({ seed: 'empty', signedIn: false });
+    expect(e2eStateFromLink('foulee://e2e', true)).toEqual({ seed: 'empty', signedIn: false, bff: 'none' });
   });
 
   it('can start signed in, with the demo plan loaded', () => {
-    expect(e2eStateFromLink('foulee://e2e?seed=demo&signedIn=true', true)).toEqual({ seed: 'demo', signedIn: true });
-    expect(e2eStateFromLink('foulee://e2e?signedIn=true', true)).toEqual({ seed: 'empty', signedIn: true });
+    expect(e2eStateFromLink('foulee://e2e?seed=demo&signedIn=true', true)).toEqual({ seed: 'demo', signedIn: true, bff: 'none' });
+    expect(e2eStateFromLink('foulee://e2e?signedIn=true', true)).toEqual({ seed: 'empty', signedIn: true, bff: 'none' });
   });
 
   it('signs in only on an explicit signedIn=true', () => {
-    expect(e2eStateFromLink('foulee://e2e?signedIn', true)).toEqual({ seed: 'empty', signedIn: false });
-    expect(e2eStateFromLink('foulee://e2e?signedIn=false', true)).toEqual({ seed: 'empty', signedIn: false });
+    expect(e2eStateFromLink('foulee://e2e?signedIn', true)).toEqual({ seed: 'empty', signedIn: false, bff: 'none' });
+    expect(e2eStateFromLink('foulee://e2e?signedIn=false', true)).toEqual({ seed: 'empty', signedIn: false, bff: 'none' });
   });
 
   it('accepts the link as Expo Router passes it, with or without scheme', () => {
-    expect(e2eStateFromLink('foulee:///e2e?seed=demo', true)).toEqual({ seed: 'demo', signedIn: false });
-    expect(e2eStateFromLink('/e2e?seed=demo', true)).toEqual({ seed: 'demo', signedIn: false });
+    expect(e2eStateFromLink('foulee:///e2e?seed=demo', true)).toEqual({ seed: 'demo', signedIn: false, bff: 'none' });
+    expect(e2eStateFromLink('/e2e?seed=demo', true)).toEqual({ seed: 'demo', signedIn: false, bff: 'none' });
   });
 
   it('leaves every other link to the router', () => {
@@ -32,8 +32,13 @@ describe('e2e reset link', () => {
     expect(e2eStateFromLink('/', true)).toBeNull();
   });
 
-  it('rejects an unknown seed instead of starting from a guessed state', () => {
+  it('can answer the Garmin import with the in-app BFF stub', () => {
+    expect(e2eStateFromLink('foulee://e2e?seed=demo&signedIn=true&bff=stub', true)).toEqual({ seed: 'demo', signedIn: true, bff: 'stub' });
+  });
+
+  it('rejects an unknown seed or BFF instead of starting from a guessed state', () => {
     expect(() => e2eStateFromLink('foulee://e2e?seed=full', true)).toThrow('Unknown e2e seed "full": use empty or demo.');
+    expect(() => e2eStateFromLink('foulee://e2e?bff=fly', true)).toThrow('Unknown e2e BFF "fly": use none or stub.');
   });
 });
 

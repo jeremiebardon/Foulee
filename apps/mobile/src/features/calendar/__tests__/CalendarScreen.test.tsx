@@ -1,14 +1,16 @@
-import { screen, userEvent } from '@testing-library/react-native';
+import { screen, userEvent, within } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
+import { linkActivity, unlinkActivity, type Activity } from '@/features/garmin';
 import { logRun } from '@/features/plans';
 import { freezeToday } from '@/test/clock';
-import { givenData } from '@/test/fakeRepositories';
+import { givenData, session } from '@/test/fakeRepositories';
 import { footing, marathon, TODAY, tenK, tenKSessions, vma } from '@/test/fixtures';
 import { CalendarScreen } from '..';
 
-// Repositories are the one mock seam (ADR 0003): the calendar reads plans and workouts through them.
+// Repositories are the one mock seam (ADR 0003): the calendar reads plans, workouts and Activities through them.
 jest.mock('@/features/plans/plan.repository', () => jest.requireActual('@/test/fakeRepositories').fakePlanRepository());
 jest.mock('@/features/workouts/workout.repository', () => jest.requireActual('@/test/fakeRepositories').fakeWorkoutRepository());
+jest.mock('@/features/garmin/activity.repository', () => jest.requireActual('@/test/fakeRepositories').fakeActivityRepository());
 
 const renderCalendar = () => renderRouter({ calendar: CalendarScreen, 'workouts/[id]': () => null }, { initialUrl: '/calendar' });
 const day = (label: string) => screen.getByRole('button', { name: label });
@@ -123,5 +125,69 @@ describe('log-run sheet', () => {
     await user.press(screen.getByRole('button', { name: 'Fermer' }));
     expect(screen.queryByLabelText('Distance (km)')).not.toBeOnTheScreen();
     expect(logRun).not.toHaveBeenCalled();
+  });
+});
+
+describe('Garmin Activities in the calendar', () => {
+  const activity = (garminActivityId: string, startTime: string, sessionId: string | null = null): Activity => ({
+    garminActivityId,
+    startTime,
+    distanceMeters: 6000,
+    durationSeconds: 1980,
+    averagePaceSecondsPerKm: 330,
+    averageHeartRateBpm: null,
+    sessionId,
+    declinedSessionId: null,
+  });
+
+  it('shows an Unplanned Activity on the local day it was run', async () => {
+    const user = userEvent.setup();
+    // Run late on Tuesday the 17th in Montréal: already the 18th in UTC.
+    givenData({ workouts: [footing, vma], plans: [tenK], sessions: tenKSessions, activities: [activity('late', '2026-11-17T23:30:00-05:00')] });
+    await renderCalendar();
+    expect(screen.queryByTestId('garmin-activity-late')).not.toBeOnTheScreen();
+
+    await user.press(day('mardi 17 novembre'));
+
+    const card = within(screen.getByTestId('garmin-activity-late'));
+    expect(card.getByText('Activité non planifiée')).toBeOnTheScreen();
+    expect(card.getByText('6 km · 33 min · 5:30/km')).toBeOnTheScreen();
+    expect(screen.getByText('Repos : aucune séance prévue.')).toBeOnTheScreen();
+  });
+
+  it('links an Activity to the Session planned that day, which is then done', async () => {
+    const user = userEvent.setup();
+    const thursday = activity('thu', '2026-11-19T18:00:00+01:00');
+    givenData({ workouts: [footing, vma], plans: [tenK], sessions: tenKSessions, activities: [thursday] });
+    await renderCalendar();
+    await user.press(day('jeudi 19 novembre'));
+
+    await user.press(screen.getByRole('button', { name: 'Lier à cette séance' }));
+
+    expect(linkActivity).toHaveBeenCalledWith(thursday, 's2');
+    // 6 km in 33 min: 5:30/km.
+    expect(screen.getByText('✓ Faite : 6 km en 33:00 · 5:30/km')).toBeOnTheScreen();
+    expect(screen.queryByTestId('garmin-activity-thu')).not.toBeOnTheScreen();
+  });
+
+  it('shows a Session completed by an Activity once, and unlinks it instead of editing it by hand', async () => {
+    const user = userEvent.setup();
+    const linked = activity('thu', '2026-11-19T18:00:00+01:00', 's2');
+    givenData({ workouts: [footing, vma], plans: [tenK], sessions: [session('s2', 'p1', 'vma', 1, 3, { meters: 6000, seconds: 1980 })], activities: [linked] });
+    await renderCalendar();
+    await user.press(day('jeudi 19 novembre'));
+
+    expect(screen.getByText('✓ Faite : 6 km en 33:00 · 5:30/km')).toBeOnTheScreen();
+    expect(screen.getByText('Activité Garmin')).toBeOnTheScreen();
+    expect(screen.queryByTestId('garmin-activity-thu')).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Marquer non faite' })).not.toBeOnTheScreen();
+
+    await user.press(screen.getByRole('button', { name: 'Délier l’activité' }));
+
+    expect(unlinkActivity).toHaveBeenCalledWith(linked);
+    expect(logRun).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Marquer comme faite' })).toBeOnTheScreen();
+    expect(within(screen.getByTestId('garmin-activity-thu')).getByText('Activité non planifiée')).toBeOnTheScreen();
   });
 });

@@ -39,7 +39,7 @@ describe('fetching Activities from the BFF', () => {
   it('asks for every Activity on the first import, proving it is the owner with the access token', async () => {
     bffAnswers(200, { activities: [run], nextCursor: '2026-11-17T06:30:00.000Z' });
     await expect(fetchActivities()).resolves.toEqual({
-      activities: [{ ...run, averageHeartRateBpm: null, sessionId: null }],
+      activities: [{ ...run, averageHeartRateBpm: null, sessionId: null, declinedSessionId: null }],
       nextCursor: '2026-11-17T06:30:00.000Z',
     });
     expect(lastRequest()).toEqual({ url: 'http://localhost:3000/v1/activities', headers: { Accept: 'application/json', Authorization: 'Bearer the-token' } });

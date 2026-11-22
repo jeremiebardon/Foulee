@@ -16,6 +16,8 @@ export type Activity = {
   averageHeartRateBpm: number | null;
   /** The Session it completes; `null` for an Unplanned Activity. */
   sessionId: string | null;
+  /** The suggested Session the runner declined (or unlinked), so it is not suggested again. */
+  declinedSessionId: string | null;
 };
 
 /** An Activity as the BFF serves it (packages/contracts), unlinked until the runner links it. */
@@ -27,6 +29,7 @@ export const fromSummary = (summary: ActivitySummary): Activity => ({
   averagePaceSecondsPerKm: summary.averagePaceSecondsPerKm,
   averageHeartRateBpm: summary.averageHeartRateBpm ?? null,
   sessionId: null,
+  declinedSessionId: null,
 });
 
 /** The local day the run happened on, where it was run: the date part of its offset start time. */

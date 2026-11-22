@@ -110,6 +110,23 @@ describe('dashboard of the selected plan', () => {
     expect(screen.getByText('lundi 23 novembre')).toBeOnTheScreen();
   });
 
+  it('counts Unplanned Activities in the totals, and a linked one once', async () => {
+    const run = (garminActivityId: string, startTime: string, sessionId: string | null) => ({
+      garminActivityId, startTime, distanceMeters: 6000, durationSeconds: 1800, averagePaceSecondsPerKm: 300, averageHeartRateBpm: null, sessionId, declinedSessionId: null,
+    });
+    givenData({
+      workouts: [footing, vma],
+      plans: [tenK, marathon],
+      // s1 (8,2 km on the 10th) is completed by a Garmin Activity; Monday the 16th's 6 km are unplanned.
+      sessions: tenKSessions,
+      activities: [run('linked', '2026-11-10T07:00:00+01:00', 's1'), run('extra', '2026-11-16T07:00:00+01:00', null)],
+    });
+    await renderDashboard();
+    expect(screen.getByText('6 / 4 km')).toBeOnTheScreen();
+    expect(screen.getByText('2 sorties · 1 h 15')).toBeOnTheScreen();
+    expect(screen.getByText('0 séance(s) sur 1')).toBeOnTheScreen();
+  });
+
   it('shows dashes for a plan with nothing planned or run yet', async () => {
     givenData({ plans: [tenK] });
     await renderDashboard();

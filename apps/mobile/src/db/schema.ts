@@ -44,8 +44,15 @@ export const activities = sqliteTable('activities', {
   durationSeconds: real().notNull(),
   averagePaceSecondsPerKm: real().notNull(),
   averageHeartRateBpm: integer(),
-  /** The Session this Activity completes; `null` for an Unplanned Activity. */
-  sessionId: text().references(() => sessions.id, { onDelete: 'set null' }),
+  /**
+   * The Session this Activity completes; `null` for an Unplanned Activity. Unique: a Session has
+   * at most one Activity (SQLite lets any number of rows hold `null`).
+   */
+  sessionId: text()
+    .unique()
+    .references(() => sessions.id, { onDelete: 'set null' }),
+  /** The suggested Session the runner declined (or unlinked) for this Activity, so it is not suggested again. */
+  declinedSessionId: text().references(() => sessions.id, { onDelete: 'set null' }),
 });
 
 /** Where each import source resumes: one row per source, holding the cursor it last returned. */

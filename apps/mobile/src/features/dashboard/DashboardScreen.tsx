@@ -6,7 +6,7 @@ import { formatDuration, formatKm, formatPaceValue } from '@/shared/lib/format';
 import { Button, Card, Empty, Row, Screen, Txt } from '@/shared/ui/kit';
 import { color, space } from '@/shared/ui/theme';
 import { seedDemo } from '@/db/seed';
-import { GarminImportLink } from '@/features/garmin';
+import { GarminImportLink, useActivities } from '@/features/garmin';
 import { createPlan, PlanPicker, useSelectedPlan, useSessionViews } from '@/features/plans';
 import { WorkoutSummary } from '@/features/workouts';
 import { computeStats, niceCeil, type WeekVolume } from './stats';
@@ -14,7 +14,7 @@ import { computeStats, niceCeil, type WeekVolume } from './stats';
 export function DashboardScreen() {
   const plan = useSelectedPlan();
   const today = todayISO();
-  const { week, last28, adherence, weekly, next } = computeStats(useSessionViews(), plan?.id ?? null, today);
+  const { week, last28, adherence, weekly, next } = computeStats(useSessionViews(), plan?.id ?? null, today, useActivities());
 
   if (!plan) {
     const demo = appConfig().devFeatures;
