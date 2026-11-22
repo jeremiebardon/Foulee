@@ -31,3 +31,17 @@ export function e2eStateFromLink(url: string | null | undefined, enabled: boolea
   if (!SEEDS.includes(seed as E2ESeed)) throw new Error(`Unknown e2e seed "${seed}": use ${SEEDS.join(' or ')}.`);
   return { seed: seed as E2ESeed, signedIn: params.get('signedIn') === 'true' };
 }
+
+/**
+ * Where Expo Router sends an incoming link (src/app/+native-intent.tsx). In e2e builds
+ * (`enabled`) the reset link is applied at startup (./startup) and then opens the home screen;
+ * every other link, and the reset link in every other build, goes to the router unchanged.
+ */
+export function redirectIncomingLink(path: string, enabled: boolean): string {
+  try {
+    return e2eStateFromLink(path, enabled) ? '/' : path;
+  } catch {
+    // An unknown seed: startup fails loudly on it, the router just opens the home screen.
+    return '/';
+  }
+}

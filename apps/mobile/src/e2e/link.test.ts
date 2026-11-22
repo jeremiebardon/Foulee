@@ -1,4 +1,4 @@
-import { e2eStateFromLink } from './link';
+import { e2eStateFromLink, redirectIncomingLink } from './link';
 
 describe('e2e reset link', () => {
   it('is ignored outside e2e builds', () => {
@@ -34,5 +34,20 @@ describe('e2e reset link', () => {
 
   it('rejects an unknown seed instead of starting from a guessed state', () => {
     expect(() => e2eStateFromLink('foulee://e2e?seed=full', true)).toThrow('Unknown e2e seed "full": use empty or demo.');
+  });
+});
+
+describe('incoming link redirect', () => {
+  it('opens the home screen for the e2e reset link in e2e builds', () => {
+    expect(redirectIncomingLink('foulee://e2e?seed=demo&signedIn=true', true)).toBe('/');
+  });
+
+  it('leaves every other link, and the reset link outside e2e builds, unchanged', () => {
+    expect(redirectIncomingLink('foulee://plans/p1', true)).toBe('foulee://plans/p1');
+    expect(redirectIncomingLink('foulee://e2e?seed=demo', false)).toBe('foulee://e2e?seed=demo');
+  });
+
+  it('opens the home screen for an unknown seed, which startup rejects loudly', () => {
+    expect(redirectIncomingLink('foulee://e2e?seed=full', true)).toBe('/');
   });
 });
