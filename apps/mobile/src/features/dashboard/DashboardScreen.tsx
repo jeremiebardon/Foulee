@@ -25,7 +25,7 @@ export function DashboardScreen() {
           text={demo ? 'Créer un plan, ou charger un exemple pour découvrir l’app.' : 'Créer un plan pour commencer.'}
           action={
             <Row>
-              {/* Dev shortcut: the demo plan exists only in the development variant. */}
+              {/* Dev shortcut: the demo plan exists only when dev features are on (development and e2e builds). */}
               {demo && <Button testID="dashboard-load-demo" title="Charger un exemple" variant="primary" onPress={() => seedDemo()} />}
               <Button testID="dashboard-create-plan" title="Créer un plan" variant={demo ? 'secondary' : 'primary'} onPress={() => router.push(`/plans/${createPlan()}/edit`)} />
             </Row>
