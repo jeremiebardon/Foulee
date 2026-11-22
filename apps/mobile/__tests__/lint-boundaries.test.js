@@ -104,7 +104,13 @@ test('only service adapters reach the service libraries', async () => {
   const kv = "import Storage from 'expo-sqlite/kv-store';";
   const callsFetch = "export const get = () => fetch('/v1/activities');";
   const usesXhr = 'export const get = () => new XMLHttpRequest();';
-  const callsFetchOnGlobal = "export const get = () => globalThis.fetch('/v1/activities');";
+  const propertyErrors = (filePath, code) => lintMessages('no-restricted-properties', filePath, code);
+  const viaGlobalObject = [
+    "export const get = () => globalThis.fetch('/v1/activities');",
+    "export const get = () => window.fetch('/v1/activities');",
+    "export const get = () => self.fetch('/v1/activities');",
+    'export const get = () => new globalThis.XMLHttpRequest();',
+  ];
 
   // Every kind of file in a feature, and the rest of the app, reaches the libraries only through the services.
   const everyone = [
@@ -130,13 +136,29 @@ test('only service adapters reach the service libraries', async () => {
     assert.notDeepEqual(await globalErrors(filePath, callsFetch), [], `${filePath} should not call fetch`);
     assert.notDeepEqual(await globalErrors(filePath, usesXhr), [], `${filePath} should not use XMLHttpRequest`);
   }
-  // Calling it through globalThis is the adapters' own way: not a bare global, so left to review.
-  assert.deepEqual(await globalErrors('src/features/garmin/data/bff.api.ts', callsFetchOnGlobal), []);
+  // Reaching the network through the global object is no way round: it fails too, wherever a bare call does.
+  for (const filePath of everyone) {
+    for (const code of viaGlobalObject) assert.notDeepEqual(await propertyErrors(filePath, code), [], `${filePath} should fail: ${code}`);
+  }
+  // ... and the environment stays behind appConfig() in those same files.
+  const readsEnv = 'export const url = process.env.EXPO_PUBLIC_BFF_URL;';
+  for (const filePath of everyone.filter((p) => p !== 'src/shared/config/appConfig.ts')) {
+    assert.notDeepEqual(await propertyErrors(filePath, readsEnv), [], `${filePath} should not read process.env`);
+  }
+  assert.deepEqual(await propertyErrors('src/shared/config/appConfig.ts', readsEnv), []);
+  assert.notDeepEqual(await propertyErrors('src/shared/config/appConfig.ts', viaGlobalObject[0]), []);
 
   // Only the service adapters import them, and only they call the network.
   await passes('src/shared/services/secureStore/expoSecureStore.ts', secure);
   await passes('src/shared/services/kvStore/expoKvStore.ts', kv);
   assert.deepEqual(await globalErrors('src/shared/services/http/fetchHttpClient.ts', callsFetch), []);
+  for (const code of viaGlobalObject) {
+    assert.deepEqual(await propertyErrors('src/shared/services/http/fetchHttpClient.ts', code), []);
+    assert.deepEqual(await propertyErrors('src/e2e/bffStub.ts', code), []);
+  }
+  // The exempt code still reads the environment through appConfig() only, as before.
+  assert.notDeepEqual(await propertyErrors('src/e2e/bffStub.ts', readsEnv), []);
+  assert.notDeepEqual(await propertyErrors('src/shared/services/http/fetchHttpClient.ts', readsEnv), []);
   // The adapters stay shared code: no feature.
   await fails('src/shared/services/http/fetchHttpClient.ts', "import { useAuth } from '@/features/auth';");
   await fails('src/shared/services/kvStore/expoKvStore.ts', "import { useAuth } from '@/features/auth';");
@@ -161,6 +183,7 @@ test('only service adapters reach the service libraries', async () => {
     await passes(filePath, secure);
     await passes(filePath, kv);
     assert.deepEqual(await globalErrors(filePath, callsFetch), [], `${filePath} may call fetch`);
+    for (const code of viaGlobalObject) assert.deepEqual(await propertyErrors(filePath, code), [], `${filePath} may call ${code}`);
   }
 
   // The rest of each file's restrictions stay: no other feature's internals, no way out of the feature.

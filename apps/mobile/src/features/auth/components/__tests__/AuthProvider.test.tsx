@@ -1,7 +1,7 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
 import { Button, Txt } from '@/shared/ui/kit';
 import { resetFakeServices } from '@/test/fakeServices';
-import { saveSession } from '../../data/session.store';
+import { services } from '@/shared/services';
 import type { AuthGateway } from '../../domain/auth';
 import { AuthProvider, LoginScreen, useAuth } from '../..';
 
@@ -40,7 +40,7 @@ describe('auth provider', () => {
   });
 
   it('starts signed in when a session was saved before, with no login screen first', async () => {
-    saveSession({ email: 'coureur@exemple.com', signedInAt: 1 });
+    services.kvStore.set('auth.session', JSON.stringify({ email: 'coureur@exemple.com', signedInAt: 1 }));
     await launch();
     expect(screen.getByText('Connecté : coureur@exemple.com')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Se connecter' })).not.toBeOnTheScreen();
@@ -59,10 +59,11 @@ describe('auth provider', () => {
 
   it('forgets the session on sign-out, for the next launch too', async () => {
     const user = userEvent.setup();
-    saveSession({ email: 'coureur@exemple.com', signedInAt: 1 });
+    services.kvStore.set('auth.session', JSON.stringify({ email: 'coureur@exemple.com', signedInAt: 1 }));
     const first = await launch();
     await user.press(screen.getByRole('button', { name: 'Se déconnecter' }));
     expect(screen.getByRole('button', { name: 'Se connecter' })).toBeOnTheScreen();
+    expect(services.kvStore.get('auth.session')).toBeNull();
     await first.unmount();
 
     await launch();

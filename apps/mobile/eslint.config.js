@@ -158,16 +158,28 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
 
 // App variants (#13): app code reads its environment only through the config accessor.
 // Tests may set the variable the accessor reads, to switch variants.
+const processEnv = { object: 'process', property: 'env', message: "Read variant values through appConfig() from '@/shared/config/appConfig'." };
 const envOnlyThroughAppConfig = {
   files: ['src/**'],
   ignores: ['src/shared/config/appConfig.ts', '**/__tests__/**'],
-  rules: {
-    'no-restricted-properties': [
-      'error',
-      { object: 'process', property: 'env', message: "Read variant values through appConfig() from '@/shared/config/appConfig'." },
-    ],
-  },
+  rules: { 'no-restricted-properties': ['error', processEnv] },
 };
+
+// The network through the global object (`globalThis.fetch`) is no way round noNetworkOutsideServices.
+// This rule is replaced per block as well: the blocks that apply it list `processEnv` too.
+const networkViaGlobalObject = ['globalThis', 'window', 'self'].flatMap((object) =>
+  ['fetch', 'XMLHttpRequest'].map((property) => ({
+    object,
+    property,
+    message: "Use the HTTP service ('@/shared/services'): only its adapter calls the network.",
+  })),
+);
+const outsideServices = [
+  // The rest of the app: no network, and the environment only through appConfig().
+  { files: ['src/**'], ignores: [...SERVICE_EXEMPT, 'src/shared/config/appConfig.ts'], rules: { 'no-restricted-properties': ['error', ...networkViaGlobalObject, processEnv] } },
+  // appConfig() itself reads the environment, but not the network.
+  { files: ['src/shared/config/appConfig.ts'], rules: { 'no-restricted-properties': ['error', ...networkViaGlobalObject] } },
+];
 
 // Coverage (#17, ADR 0003): jest.config.js enforces 100% and lists every exclusion. A hint that
 // opts code out of coverage inline would dodge that list, so every such comment is a lint error.
@@ -207,4 +219,5 @@ module.exports = defineConfig([
   { files: ['src/shared/**'], rules: restrict(anyFeature) },
   { files: ['src/shared/**'], ignores: SERVICE_EXEMPT, rules: restrict(anyFeature, serviceLibraries) },
   envOnlyThroughAppConfig,
+  ...outsideServices,
 ]);

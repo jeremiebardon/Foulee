@@ -9,7 +9,7 @@ import { ActivityImportScreen } from '../ActivityImportScreen';
 import { fetchActivitiesSince } from '../../data/bff.api';
 import { saveBffToken } from '../../data/bffAccess.store';
 
-// The mock seams of screen tests (ADR 0003): the repositories, and the BFF client, which finds nothing new.
+// The mock seams of screen tests (ADR 0003): the repositories, the BFF API, which finds nothing new, and the services.
 jest.mock('../../data/activity.repository', () => jest.requireActual('@/test/fakeRepositories').fakeActivityRepository());
 jest.mock('@/features/plans/data/plan.repository', () => jest.requireActual('@/test/fakeRepositories').fakePlanRepository());
 jest.mock('@/features/workouts/data/workout.repository', () => jest.requireActual('@/test/fakeRepositories').fakeWorkoutRepository());
