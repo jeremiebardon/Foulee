@@ -24,7 +24,12 @@ function git(...args) {
 }
 
 // A ref that does not resolve is a CI misconfiguration, not a pass.
-git('rev-parse', '--verify', '--quiet', `${base}^{commit}`);
+try {
+  git('rev-parse', '--verify', '--quiet', `${base}^{commit}`);
+} catch {
+  console.error(`${base} is not a commit in this clone (is it fetched?).`);
+  process.exit(2);
+}
 
 try {
   git('cat-file', '-e', `${base}:${SNAPSHOT}`);
