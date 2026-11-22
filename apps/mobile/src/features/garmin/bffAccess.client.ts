@@ -1,11 +1,12 @@
 import * as SecureStore from 'expo-secure-store';
-import { useSyncExternalStore } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { appConfig } from '@/shared/config/appConfig';
-import { garminImportAvailable } from './activity';
+import { bffAccessOf } from './bffAccess';
 
 /**
- * Access to the BFF: its URL comes with the build (appConfig), the access token is pasted once in
- * Settings and kept in the Keychain / Keystore, never in the database or the bundle.
+ * Client of the phone's secure store, for access to the BFF: its URL comes with the build
+ * (appConfig), the BFF Access Token is pasted once in Settings and kept in the Keychain /
+ * Keystore, never in the database or the bundle.
  */
 const KEY = 'garmin.bffAccessToken';
 
@@ -48,9 +49,11 @@ export async function forgetBffToken() {
   publish(null);
 }
 
-/** What the Garmin import needs, and whether it shows at all. */
+/** The BFF URL and the saved token, and the access they make together (`null`: no Garmin import). */
 export function useGarminImport() {
-  const current = useSyncExternalStore(subscribe, readToken);
+  const token = useSyncExternalStore(subscribe, readToken);
   const { bffUrl } = appConfig();
-  return { bffUrl, token: current, available: garminImportAvailable({ bffUrl, token: current }) };
+  // One object per URL and token, so a screen can depend on it.
+  const access = useMemo(() => bffAccessOf({ bffUrl, token }), [bffUrl, token]);
+  return { bffUrl, token, access };
 }

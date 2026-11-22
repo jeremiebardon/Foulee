@@ -1,5 +1,6 @@
 import { errorBodySchema, listActivitiesResponseSchema } from '@foulee/contracts';
 import { fromSummary, type Activity } from './activity';
+import type { BffAccess } from './bffAccess';
 
 /**
  * Client of the BFF (ADR 0005, 0006): `GET /v1/activities`, parsed with the shared contracts so an
@@ -20,7 +21,7 @@ export type ActivitiesPage = { activities: Activity[]; nextCursor: string | null
 /** Past this, an unreachable BFF (a laptop asleep, a captive Wi-Fi) is reported as a network failure. */
 const TIMEOUT_MS = 20_000;
 
-async function request(url: string, token: string): Promise<Response> {
+async function request(url: string, { token }: BffAccess): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -41,9 +42,9 @@ function failureOf(body: unknown): ImportFailure {
 }
 
 /** Running Activities started after `since` (the cursor the last import returned; `null` the first time). */
-export async function fetchActivitiesSince({ bffUrl, token, since }: { bffUrl: string; token: string; since: string | null }): Promise<ActivitiesPage> {
+export async function fetchActivitiesSince(access: BffAccess, since: string | null): Promise<ActivitiesPage> {
   const query = since === null ? '' : `?since=${encodeURIComponent(since)}`;
-  const response = await request(`${bffUrl}/v1/activities${query}`, token);
+  const response = await request(`${access.bffUrl}/v1/activities${query}`, access);
   const body = await json(response);
   if (!response.ok) throw new BffError(failureOf(body));
   const page = listActivitiesResponseSchema.safeParse(body);

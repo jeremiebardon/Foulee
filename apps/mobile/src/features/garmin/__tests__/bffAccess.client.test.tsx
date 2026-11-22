@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 import { setItem } from '@/test/memorySecureStore';
 import { Txt } from '@/shared/ui/kit';
-import { storedToken, useGarminImport } from '../bffAccess';
+import { storedToken, useGarminImport } from '../bffAccess.client';
 
 jest.mock('expo-secure-store', () => jest.requireActual('@/test/memorySecureStore'));
 

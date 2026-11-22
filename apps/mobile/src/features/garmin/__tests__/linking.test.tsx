@@ -6,7 +6,7 @@ import type { Activity } from '../activity';
 import { declineSuggestion, linkActivity, unlinkActivity } from '../activity.repository';
 import { ActivityImportScreen } from '../ActivityImportScreen';
 import { fetchActivitiesSince } from '../bff.client';
-import { saveBffToken } from '../bffAccess';
+import { saveBffToken } from '../bffAccess.client';
 
 // The mock seams of screen tests (ADR 0003): the repositories, and the BFF client, which finds nothing new.
 jest.mock('../activity.repository', () => jest.requireActual('@/test/fakeRepositories').fakeActivityRepository());

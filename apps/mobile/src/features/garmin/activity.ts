@@ -46,6 +46,3 @@ export const activityDate = (activity: Pick<Activity, 'startTime'>): ISODate => 
 /** Most recent first, by the instant each run started (start times carry different offsets). */
 export const newestFirst = (list: Activity[]): Activity[] =>
   [...list].sort((a, b) => Date.parse(b.startTime) - Date.parse(a.startTime));
-
-/** The import shows only when the build points at a BFF and the runner has saved its access token. */
-export const garminImportAvailable = ({ bffUrl, token }: { bffUrl: string | null; token: string | null }) => !!bffUrl && !!token;

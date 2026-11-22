@@ -49,6 +49,20 @@ test('domain files stay pure: no React, React Native or database', async () => {
   await passes('src/features/workouts/WorkoutSummary.tsx', "import { View } from 'react-native';");
 });
 
+test('domain files reach nothing outside the app: clients do, hooks use React', async () => {
+  const globalErrors = (filePath, code) => lintMessages('no-restricted-globals', filePath, code);
+  const callsNetwork = "export const get = () => fetch('/v1/activities');";
+  await fails('src/features/garmin/activity.ts', "import * as SecureStore from 'expo-secure-store';");
+  assert.notDeepEqual(await globalErrors('src/features/garmin/activity.ts', callsNetwork), []);
+  // A client talks to what lies outside the app, other than the database: the BFF, the secure store.
+  assert.deepEqual(await globalErrors('src/features/garmin/bff.client.ts', callsNetwork), []);
+  await passes('src/features/garmin/bffAccess.client.ts', "import * as SecureStore from 'expo-secure-store';");
+  await passes('src/features/garmin/bffAccess.client.ts', "import { useSyncExternalStore } from 'react';");
+  // A hook module (use*.ts) composes React hooks over repositories, with no JSX.
+  await passes('src/features/garmin/useLinking.ts', "import { useMemo } from 'react';");
+  await fails('src/features/garmin/useLinking.ts', "import { PlanPicker } from '@/features/plans/PlanPicker';");
+});
+
 test('dependencies point one way: workouts <- plans <- garmin <- calendar, dashboard', async () => {
   await passes('src/features/calendar/CalendarScreen.tsx', "import { PlanPicker } from '@/features/plans';");
   await passes('src/features/dashboard/DashboardScreen.tsx', "import { WorkoutSummary } from '@/features/workouts';");

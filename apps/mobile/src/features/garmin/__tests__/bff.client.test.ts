@@ -19,7 +19,7 @@ const lastRequest = () => {
   return { url, headers: init.headers };
 };
 
-const fetchActivities = (since: string | null = null) => fetchActivitiesSince({ bffUrl: 'http://localhost:3000', token: 'the-token', since });
+const fetchActivities = (since: string | null = null) => fetchActivitiesSince({ bffUrl: 'http://localhost:3000', token: 'the-token' }, since);
 
 const failureOf = (promise: Promise<unknown>) =>
   promise.then(

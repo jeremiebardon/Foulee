@@ -1,4 +1,4 @@
-import { activityDate, fromSummary, garminImportAvailable, newestFirst, type Activity } from '../activity';
+import { activityDate, fromSummary, newestFirst, type Activity } from '../activity';
 
 const morningRun: Activity = {
   garminActivityId: '1001',
@@ -47,14 +47,5 @@ describe('the list of Activities', () => {
     const parisEvening = { ...morningRun, garminActivityId: '1003', startTime: '2026-11-17T19:00:00+01:00' };
     // 08:00 in Tokyo on the 18th is 23:00 UTC on the 17th, after the Paris evening run (18:00 UTC).
     expect(newestFirst([morningRun, parisEvening, tokyoMorning]).map((a) => a.garminActivityId)).toEqual(['1002', '1003', '1001']);
-  });
-});
-
-describe('the Garmin import', () => {
-  it('is available only once the build has a BFF URL and the runner has saved an access token', () => {
-    expect(garminImportAvailable({ bffUrl: 'http://localhost:3000', token: 'secret' })).toBe(true);
-    expect(garminImportAvailable({ bffUrl: null, token: 'secret' })).toBe(false);
-    expect(garminImportAvailable({ bffUrl: 'http://localhost:3000', token: null })).toBe(false);
-    expect(garminImportAvailable({ bffUrl: null, token: null })).toBe(false);
   });
 });

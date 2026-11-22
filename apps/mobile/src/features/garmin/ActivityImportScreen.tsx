@@ -5,9 +5,11 @@ import { Button, Card, Empty, Screen, Txt } from '@/shared/ui/kit';
 import { color } from '@/shared/ui/theme';
 import { newestFirst } from './activity';
 import { readImportCursor, saveImport } from './activity.repository';
-import { ActivityCard, useLinking } from './ActivityCard';
+import { ActivityCard } from './ActivityCard';
 import { BffError, fetchActivitiesSince, type ImportFailure } from './bff.client';
-import { useGarminImport } from './bffAccess';
+import type { BffAccess } from './bffAccess';
+import { useGarminImport } from './bffAccess.client';
+import { useLinking } from './useLinking';
 
 const FAILURE_MESSAGES: Record<ImportFailure, string> = {
   network: 'BFF injoignable. Vérifier la connexion, puis tirer vers le bas pour réessayer.',
@@ -24,9 +26,9 @@ type Outcome = { added: number } | { failure: ImportFailure };
 const openSettings = () => router.push('/settings');
 
 /** Fetches what is new since the stored cursor and stores it. Never rejects: a failure is an outcome to show. */
-async function importNew(bffUrl: string, token: string): Promise<Outcome> {
+async function importNew(access: BffAccess): Promise<Outcome> {
   try {
-    const page = await fetchActivitiesSince({ bffUrl, token, since: readImportCursor() });
+    const page = await fetchActivitiesSince(access, readImportCursor());
     return { added: saveImport(page) };
   } catch (error) {
     return { failure: error instanceof BffError ? error.reason : 'unexpected' };
@@ -39,7 +41,7 @@ async function importNew(bffUrl: string, token: string): Promise<Outcome> {
  * BFF is down, it says so and the rest of the app works as before (ADR 0005).
  */
 export function ActivityImportScreen() {
-  const { bffUrl, token } = useGarminImport();
+  const { access } = useGarminImport();
   const linking = useLinking();
   const list = newestFirst(linking.activities);
   // The screen imports as soon as it opens, so it starts out importing.
@@ -49,14 +51,14 @@ export function ActivityImportScreen() {
 
   /** One import at a time; its outcome lands once the BFF has answered. */
   const fetchNew = useCallback(() => {
-    if (!bffUrl || !token || running.current) return;
+    if (!access || running.current) return;
     running.current = true;
-    void importNew(bffUrl, token).then((next) => {
+    void importNew(access).then((next) => {
       running.current = false;
       setOutcome(next);
       setImporting(false);
     });
-  }, [bffUrl, token]);
+  }, [access]);
 
   useEffect(fetchNew, [fetchNew]);
 
@@ -66,7 +68,7 @@ export function ActivityImportScreen() {
     fetchNew();
   };
 
-  if (!bffUrl || !token) {
+  if (!access) {
     return (
       <Screen testID="garmin-import">
         <Empty
