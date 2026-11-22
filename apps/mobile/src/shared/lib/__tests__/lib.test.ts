@@ -1,4 +1,4 @@
-import { addDays, diffDays, mondayOf, monthGrid } from '../dates';
+import { addDays, diffDays, formatUtcOffset, mondayOf, monthGrid } from '../dates';
 import { formatClock, formatDistance, formatDuration, parseClock, parseDistance, parsePace } from '../format';
 
 describe('dates', () => {
@@ -11,6 +11,16 @@ describe('dates', () => {
   it('builds full weeks around a month', () => {
     const grid = monthGrid(2026, 10);
     expect([grid[0], grid.at(-1), grid.length % 7]).toEqual(['2026-10-26', '2026-12-06', 0]);
+  });
+});
+
+describe('UTC offsets', () => {
+  it('are written the way ISO 8601 start times carry them', () => {
+    expect(formatUtcOffset(60)).toBe('+01:00');
+    expect(formatUtcOffset(0)).toBe('+00:00');
+    expect(formatUtcOffset(-300)).toBe('-05:00');
+    expect(formatUtcOffset(330)).toBe('+05:30');
+    expect(formatUtcOffset(-570)).toBe('-09:30');
   });
 });
 

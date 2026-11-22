@@ -12,6 +12,10 @@ export function fromISO(iso: ISODate): Date {
 
 export const todayISO = () => toISO(new Date());
 
+/** Minutes east of UTC as an ISO 8601 offset: 60 → « +01:00 », -300 → « -05:00 ». */
+export const formatUtcOffset = (minutes: number) =>
+  `${minutes < 0 ? '-' : '+'}${pad(Math.floor(Math.abs(minutes) / 60))}:${pad(Math.abs(minutes) % 60)}`;
+
 export function addDays(iso: ISODate, n: number): ISODate {
   const d = fromISO(iso);
   d.setDate(d.getDate() + n);

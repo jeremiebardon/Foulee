@@ -1,0 +1,33 @@
+appId: com.jbardon.foulee
+name: Import an Activity from the BFF stub and link it to a Session
+tags:
+  - garmin
+---
+# `bff=stub`: the e2e build answers the import itself (src/e2e/bffStub.ts) with one 6 km run this
+# morning, and saves an access token so the import shows. The demo plan gives Sessions to link to.
+- runFlow:
+    file: subflows/launch.yaml
+    env:
+      LINK: foulee://e2e?seed=demo&signedIn=true&bff=stub
+      SCREEN: dashboard-week
+- tapOn:
+    id: garmin-import-open
+- extendedWaitUntil:
+    visible:
+      id: garmin-import-added
+    timeout: 10000
+- assertVisible:
+    id: garmin-activity-e2e-1
+- assertVisible:
+    id: activity-unplanned
+# Link by hand: today may be a rest day, so a suggestion is not always there. The nearest Session comes first.
+- tapOn:
+    id: activity-link-manual
+- tapOn:
+    id: activity-link-candidate
+    index: 0
+- assertVisible:
+    id: activity-linked
+    text: '✓ .*'
+- assertNotVisible:
+    id: activity-unplanned
