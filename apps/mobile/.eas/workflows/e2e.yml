@@ -2,6 +2,10 @@
 # profile: the production variant with the e2e reset link enabled.
 # Only on pushes to main that touch the app or a workspace package it depends on: a push that
 # only changes apps/bff (or docs) does not start it. Paths are relative to the repository root.
+# It also runs on the Version Packages pull request, so a release is checked before it ships.
+# A `pull_request` trigger's `branches` filter matches the BASE branch (main for every pull
+# request), so the trigger's `if` picks that pull request by its head branch, the one
+# changesets/action pushes: `changeset-release/main`. Other pull requests do not run it.
 # The native build is reused while the fingerprint is unchanged: the last e2e build with the same
 # fingerprint is repacked with the new JavaScript, which takes minutes instead of a full build.
 # Start it by hand from the Expo dashboard or, in apps/mobile:
@@ -19,6 +23,10 @@ on:
       - packages/tsconfig/**
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
+  pull_request:
+    branches:
+      - main
+    if: ${{ github.event.pull_request.head.ref == 'changeset-release/main' }}
 
 jobs:
   fingerprint:

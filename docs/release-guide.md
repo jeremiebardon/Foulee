@@ -1,6 +1,6 @@
 # Release guide
 
-This guide grows with the tooling-ci-cd work (spec issue #9). Today it covers the one-time GitHub setup. Agents never create the remote repository, accounts or tokens; you do these steps yourself.
+This guide covers the one-time GitHub, Expo and store setup, development builds, end-to-end tests, the PR checks and the day-to-day release flow (spec issue #9). Agents never create the remote repository, accounts or tokens; you do these steps yourself.
 
 ## One-time GitHub setup
 
@@ -24,6 +24,7 @@ Branch naming and commit rules are in `docs/agents/branching.md`.
 5. **Enable the Turborepo remote cache** (optional but recommended; CI works without it):
    - Create a Vercel team token (or your remote-cache provider's) and add it as the repository **secret** `TURBO_TOKEN`.
    - Add the team slug as the repository **variable** `TURBO_TEAM`.
+6. **Let the release workflow open pull requests**: Settings → Actions → General → Workflow permissions, tick **Allow GitHub Actions to create and approve pull requests**. Without it, the changesets action cannot open the Version Packages pull request.
 
 ## One-time Expo and EAS setup
 
@@ -35,16 +36,17 @@ alias eas='pnpm dlx --allow-build=protobufjs --allow-build=dtrace-provider eas-c
 ```
 
 1. **Create an Expo account** at <https://expo.dev/signup> (or use your existing one), then **log in**: `eas login`. Check it with `eas whoami`.
-2. **Create the EAS project**: `eas init`. It creates the project on expo.dev and prints its project ID. The app config is TypeScript (`app.config.ts`), so EAS cannot write the ID itself. Add it by hand, together with your account name, and commit the change (neither value is secret):
+2. **Create the EAS project**: `eas init`. It creates the project on expo.dev and prints its project ID. The app config is TypeScript (`app.config.ts`), so EAS cannot write the ID itself, nor the update URL that `eas update:configure` would add. Add them by hand, together with your account name, and commit the change (none of these values is secret):
 
    ```ts
    // app.config.ts, inside the returned object
    owner: '<your-expo-account>',
    extra: { eas: { projectId: '<project-id>' } },
+   updates: { url: 'https://u.expo.dev/<project-id>' },
    ```
 
-   Run `eas init` again afterwards: it should report the project as already linked.
-3. **Create a GitHub access token for EAS** so GitHub Actions can start EAS jobs: on expo.dev, open Account settings → Access tokens, create a token (a robot user's token, with only the role CI needs, is safer than a personal one), and add it as the GitHub repository **secret** `EXPO_TOKEN` (Settings → Secrets and variables → Actions). GitHub holds no other Expo, Apple or Google credential: the App Store Connect API key and the Play service account live in EAS credentials (set up with the store-release steps).
+   Run `eas init` again afterwards: it should report the project as already linked. `runtimeVersion` (the `fingerprint` policy) and the `production` channel in `eas.json` are already set, so `eas update:configure` has nothing left to do.
+3. **GitHub secrets**: none is needed for EAS. EAS starts its workflows itself, through the GitHub connection of the next step, so GitHub holds no Expo, Apple or Google credential: the App Store Connect API key and the Play service account live in EAS credentials (see "One-time store setup"). If you ever make a GitHub Actions job call EAS CLI, `EXPO_TOKEN` is the only secret to add for it: on expo.dev, Account settings → Access tokens (a robot user's token is safer than a personal one), then add it as the repository **secret** `EXPO_TOKEN`.
 4. **Connect the GitHub repository** to the Expo project (expo.dev → Project settings → GitHub), with `apps/mobile` as the base directory, so EAS Workflows can run from the repository.
 5. **Register iOS test devices** for internal distribution: `eas device:create`, then open the link on each iPhone. Device builds made before a device is registered do not install on it.
 
@@ -60,7 +62,7 @@ Daily work runs on a development build (the `development` variant with `expo-dev
 
 The Maestro flows in `apps/mobile/.maestro/` (sign in, workouts, plans, logging a run, dashboard, demo plan) run against an **e2e build**: the production variant (`APP_VARIANT=production`) with `EXPO_PUBLIC_E2E=true`. Only such a build honours the reset link `foulee://e2e?seed=empty|demo&signedIn=true` that each flow opens after clearing the app's data, and it turns the dev shortcuts on (mock sign-in, demo plan). Development builds and store builds ignore the link. Flows select elements by `testID` only.
 
-- **In CI**: `.eas/workflows/e2e.yml` runs every flow on an Android emulator on pushes to `main` that touch `apps/mobile`, its workspace packages or the lockfile. It looks up an `e2e` build with the same native fingerprint and repacks it with the new JavaScript, or builds one when the fingerprint changed.
+- **In CI**: `.eas/workflows/e2e.yml` runs every flow on an Android emulator on pushes to `main` that touch `apps/mobile`, its workspace packages or the lockfile, and on the Version Packages pull request. It looks up an `e2e` build with the same native fingerprint and repacks it with the new JavaScript, or builds one when the fingerprint changed.
 - **Locally on Android** (Maestro CLI and an emulator running): build and install the release APK, then run the flows from `apps/mobile`:
 
   ```bash
@@ -81,5 +83,51 @@ The Maestro flows in `apps/mobile/.maestro/` (sign in, workouts, plans, logging 
 2. Asks Turbo which projects are affected relative to the base branch (`turbo ls --affected`).
 3. Runs `expo-doctor` in `apps/mobile` only when `mobile` is affected.
 4. Runs `turbo run lint typecheck test --affected`.
+5. On pull requests, runs the **changeset check** (`packages/release-tools/bin/check-changeset.js`): it fails when the pull request changes anything under `apps/mobile` or `packages/contracts` (the app bundles the contracts) without adding a file to `.changeset/`. Then `changeset status` validates the changesets themselves. The Version Packages pull request is exempt, since it consumes the changesets.
 
-A change to `apps/bff` alone skips the mobile tasks. A change to `packages/contracts` affects both apps, so both run.
+A change to `apps/bff` alone skips the mobile tasks and needs no changeset. A change to `packages/contracts` affects both apps, so both run, and it needs a changeset.
+
+The workflow can also be started by hand (`workflow_dispatch`); the release workflow does that on the Version Packages pull request (see below).
+
+## One-time store setup
+
+Do this once, after the Expo setup above. Every credential goes to EAS, never to GitHub. Run the commands from `apps/mobile` with the `eas` alias defined above.
+
+**Apple (TestFlight)**
+
+1. Join the Apple Developer Program, then create the app in App Store Connect (Apps → New App) with the bundle ID `com.jbardon.foulee`. If the bundle ID is not listed yet, `eas credentials --platform ios` (or the first `eas build --platform ios --profile production`) registers it.
+2. `eas credentials --platform ios`, pick the `production` profile, sign in to Apple, and let EAS create the distribution certificate and provisioning profile.
+3. In the same menu: **App Store Connect: Manage your API Key** → **Set up your project to use an API Key for Expo Submit**. EAS creates the App Store Connect API key and keeps it; this is what lets the release workflow submit without you.
+4. Copy the app's **Apple ID** (App Store Connect → the app → App Information; a number) into `eas.json` and commit it (it is not secret; non-interactive submits need it):
+
+   ```json
+   "submit": { "production": { "ios": { "ascAppId": "<apple-id>" }, "android": { ... } } }
+   ```
+
+**Google (Play internal track)**
+
+1. Create a Play developer account and the app in Play Console with the package `com.jbardon.foulee`.
+2. Create a Google service account with access to the app in Play Console (Expo's guide: <https://expo.fyi/creating-google-service-account>) and download its JSON key.
+3. Upload the key to EAS: expo.dev → the project → Credentials → Android → `com.jbardon.foulee` → **Add a Google service account key**, or `eas credentials --platform android` → `production` → Google Service Account. Delete the local JSON file afterwards; `.gitignore` does not cover it.
+4. The upload keystore is created by EAS on the first production build (or now, through `eas credentials --platform android`).
+5. While the app has never been published, Play only accepts draft releases. If the first submit fails with a message about draft apps, set `"releaseStatus": "draft"` under `submit.production.android` in `eas.json`, roll that first internal release out by hand in Play Console, then set it back to `"completed"`.
+
+**Build numbers**: EAS keeps them (`"appVersionSource": "remote"` in `eas.json`) and increments them on every production build (`autoIncrement`). A new app starts at 1. If a store already has builds of this app, run `eas build:version:set` once per platform with the last number it has.
+
+## Releasing
+
+Releasing means merging a pull request. Changesets versions one package, the app (`mobile` in `apps/mobile`); the BFF deploys on its own and the `@foulee/*` packages are internal, so `.changeset/config.json` ignores them. The app version lives only in `apps/mobile/package.json`: `app.config.ts` reads it (`scripts/check-app-config.js` checks this on every lint), and EAS adds the build numbers.
+
+1. **Every pull request that changes the app** adds a changeset: run `pnpm changeset` at the repository root, pick `mobile`, choose patch, minor or major, write the line users will read in the changelog, and commit the file. For a change users do not notice (tests, tooling), `pnpm changeset --empty` satisfies the check without releasing anything.
+2. **On every push to `main`**, `.github/workflows/release.yml` runs the changesets action. While changesets are waiting, it keeps a pull request titled `chore(release): version packages` open on the branch `changeset-release/main`, and updates it on each push. It bumps the version in `apps/mobile/package.json` and writes `apps/mobile/CHANGELOG.md`.
+   - Pushes made with the workflow's own token start no other GitHub workflow, so the release workflow then dispatches `PR checks` on that branch, which reports the required `check` on the pull request.
+   - EAS runs the Maestro flows on it (`.eas/workflows/e2e.yml` matches the head branch `changeset-release/main`).
+3. **Merge the Version Packages pull request** (squash) when you want to ship. The next run of the release workflow tags that commit `vX.Y.Z` and creates the GitHub release with its changelog entry (`packages/release-tools/bin/tag-release.js`; it does nothing when the version is already tagged, or has no changelog entry yet).
+4. **EAS ships it.** The tag starts `.eas/workflows/release.yml`. It computes the native fingerprint of the production variant and looks for a `production` store build with the same fingerprint, per platform:
+   - found: only JavaScript and assets changed, so it publishes an over-the-air update on the `production` channel. Users get it on the next app launches. The `fingerprint` runtime version policy keeps the update off binaries it does not fit.
+   - not found: native code changed (a native module, the Expo SDK, the app config's native settings), so it builds the `production` profile and submits it to TestFlight and the Play internal track.
+5. **Promote by hand** when the testers are happy: submit the TestFlight build for App Store review in App Store Connect, and promote the internal release to production in Play Console. Nothing automates this step.
+
+Follow a release on expo.dev → the project → Workflows. To run a release again (for example after a failed submit), start it from there or with `eas workflow:run .eas/workflows/release.yml --ref vX.Y.Z`. If a store build was made but never submitted, submit it (`eas submit --platform <platform> --id <build-id>`) before the next release: a later JavaScript-only release would otherwise update a binary nobody has.
+
+**Why the tag starts EAS, and not GitHub.** EAS Workflows can start on a tag push (`on: push: tags`), through the GitHub connection, and then run from that exact commit. The alternative, a GitHub Actions step calling `eas workflow:run` with `EXPO_TOKEN`, would put an Expo token in GitHub and add EAS CLI to the runner, for the same result. With the tag trigger, GitHub holds no release credential at all, a release can be re-run from expo.dev or by tag, and the GitHub workflow only does what changesets needs (version, tag, GitHub release).

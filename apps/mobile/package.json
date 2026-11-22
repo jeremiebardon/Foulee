@@ -17,6 +17,7 @@
     "expo-router": "~58.0.32",
     "expo-sqlite": "~58.0.18",
     "expo-status-bar": "~58.0.5",
+    "expo-updates": "~58.0.22",
     "react": "19.3.0",
     "react-native": "0.88.1",
     "react-native-performance": "^7.0.0",
@@ -54,7 +55,7 @@
     "test": "jest",
     "e2e": "maestro test .maestro",
     "db:generate": "drizzle-kit generate",
-    "lint": "expo lint && node --test scripts/check-lint-boundaries.js scripts/check-lint-coverage-ignores.js",
+    "lint": "expo lint && node --test scripts/check-lint-boundaries.js scripts/check-lint-coverage-ignores.js scripts/check-app-config.js",
     "dev": "expo start"
   },
   "private": true
