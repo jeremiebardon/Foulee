@@ -1,10 +1,21 @@
 import { z } from 'zod';
-import { findBreakingChanges, toJsonSchemaSnapshot } from '../index';
+import { findBreakingChanges, toJsonSchemaSnapshot, type Direction } from '../index';
 
-/** Exports both contracts the way CI does, then compares them. */
-function compare(base: Record<string, z.ZodType>, head: Record<string, z.ZodType>) {
-  return findBreakingChanges(toJsonSchemaSnapshot(base), toJsonSchemaSnapshot(head));
+type Schemas = Record<string, z.ZodType>;
+
+const travelling = (direction: Direction, schemas: Schemas) =>
+  Object.fromEntries(Object.entries(schemas).map(([name, schema]) => [name, { direction, schema }]));
+
+/** Exports both contracts the way CI does, every schema travelling in `direction`, then compares them. */
+function compareIn(direction: Direction, base: Schemas, head: Schemas) {
+  return findBreakingChanges(toJsonSchemaSnapshot(travelling(direction, base)), toJsonSchemaSnapshot(travelling(direction, head)));
 }
+
+/** What an installed app sends and a newer BFF parses: the BFF must accept all it accepted. */
+const compare = (base: Schemas, head: Schemas) => compareIn('request', base, head);
+
+/** What a newer BFF sends and an installed app parses: the app must accept all it is sent. */
+const compareResponse = (base: Schemas, head: Schemas) => compareIn('response', base, head);
 
 const activity = z.object({
   id: z.string(),
@@ -12,7 +23,7 @@ const activity = z.object({
   heartRate: z.number().int().optional(),
 });
 
-describe('findBreakingChanges', () => {
+describe('findBreakingChanges on a request', () => {
   it('finds nothing when the contract is unchanged', () => {
     expect(compare({ activity }, { activity })).toEqual([]);
   });
@@ -165,6 +176,16 @@ describe('findBreakingChanges', () => {
       expect(compare({ value: base }, { value: head })).toContainEqual({ path: 'value', message });
     });
 
+    it('reads the tighter of an inclusive and an exclusive bound set together', () => {
+      // zod never sets both, but JSON Schema allows it: `minimum: 5` wins over `exclusiveMinimum: 0`.
+      const entry = (schema: Record<string, unknown>) => ({ value: { direction: 'request' as const, schema } });
+      const both = entry({ type: 'number', minimum: 5, exclusiveMinimum: 0 });
+      expect(findBreakingChanges(entry({ type: 'number', minimum: 5 }), both)).toEqual([]);
+      expect(findBreakingChanges(entry({ type: 'number', exclusiveMinimum: 0 }), both)).toEqual([
+        { path: 'value', message: 'lower bound raised to >= 5 (was > 0)' },
+      ]);
+    });
+
     it('fails when a datetime no longer accepts a timezone offset', () => {
       expect(compare({ at: z.iso.datetime({ offset: true }) }, { at: z.iso.datetime() })).toEqual([
         { path: 'at', message: 'pattern changed' },
@@ -206,6 +227,144 @@ describe('findBreakingChanges', () => {
   it('fails when an endpoint is removed', () => {
     expect(compare({ activity, other: z.string() }, { activity })).toEqual([
       { path: 'other', message: 'schema removed' },
+    ]);
+  });
+});
+
+describe('findBreakingChanges on a response', () => {
+  it('finds nothing when the contract is unchanged', () => {
+    expect(compareResponse({ activity }, { activity })).toEqual([]);
+  });
+
+  it('passes when an optional field is added, which the app strips as an unknown key', () => {
+    const head = activity.extend({ cadence: z.number().optional() });
+    expect(compareResponse({ activity }, { activity: head })).toEqual([]);
+  });
+
+  it('passes when a required field is added, which the app strips as an unknown key', () => {
+    const head = activity.extend({ cadence: z.number() });
+    expect(compareResponse({ activity }, { activity: head })).toEqual([]);
+  });
+
+  it('fails when a field is added to a strict object, which the app rejects', () => {
+    const base = z.strictObject({ id: z.string() });
+    expect(compareResponse({ activity: base }, { activity: base.extend({ name: z.string().optional() }) })).toEqual([
+      { path: 'activity.name', message: 'field added to an object that rejects unknown keys' },
+    ]);
+  });
+
+  it('fails when a field is removed', () => {
+    const head = activity.omit({ distanceMeters: true });
+    expect(compareResponse({ activity }, { activity: head })).toEqual([
+      { path: 'activity.distanceMeters', message: 'field removed' },
+    ]);
+  });
+
+  it('fails when a field is renamed, reporting the old name as removed', () => {
+    const head = activity.omit({ distanceMeters: true }).extend({ distance: z.number().positive() });
+    expect(compareResponse({ activity }, { activity: head })).toEqual([
+      { path: 'activity.distanceMeters', message: 'field removed' },
+    ]);
+  });
+
+  it('fails when a required field becomes optional', () => {
+    const head = activity.extend({ id: z.string().optional() });
+    expect(compareResponse({ activity }, { activity: head })).toEqual([
+      { path: 'activity.id', message: 'field became optional' },
+    ]);
+  });
+
+  it('passes when an optional field becomes required', () => {
+    const head = activity.extend({ heartRate: z.number().int() });
+    expect(compareResponse({ activity }, { activity: head })).toEqual([]);
+  });
+
+  it('fails when a field becomes nullable', () => {
+    expect(compareResponse({ cursor: z.string() }, { cursor: z.string().nullable() })).toEqual([
+      { path: 'cursor', message: 'type "null" added' },
+    ]);
+  });
+
+  it('passes when a field is no longer nullable', () => {
+    expect(compareResponse({ cursor: z.string().nullable() }, { cursor: z.string() })).toEqual([]);
+  });
+
+  it('fails when an enum value is added', () => {
+    const code = z.enum(['unauthorized', 'not_found']);
+    expect(compareResponse({ code }, { code: z.enum([...code.options, 'teapot']) })).toEqual([
+      { path: 'code', message: 'enum value "teapot" added' },
+    ]);
+  });
+
+  it('passes when an enum value is removed', () => {
+    const code = z.enum(['unauthorized', 'not_found']);
+    expect(compareResponse({ code }, { code: code.exclude(['not_found']) })).toEqual([]);
+  });
+
+  it('fails when an enum becomes a free string', () => {
+    expect(compareResponse({ code: z.enum(['a', 'b']) }, { code: z.string() })).toEqual([
+      { path: 'code', message: 'no longer restricted to the values "a", "b"' },
+    ]);
+  });
+
+  it('fails when an integer is widened to a number', () => {
+    expect(compareResponse({ n: z.int() }, { n: z.number().min(Number.MIN_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER) })).toEqual([
+      { path: 'n', message: 'type "number" added' },
+    ]);
+  });
+
+  it('fails when a type is widened to a union', () => {
+    expect(compareResponse({ id: z.string() }, { id: z.union([z.string(), z.number()]) })).toEqual([
+      { path: 'id', message: 'type "number" added' },
+    ]);
+  });
+
+  it('fails when a typed value becomes unknown', () => {
+    expect(compareResponse({ meta: z.string() }, { meta: z.unknown() })).toEqual([
+      { path: 'meta', message: 'no longer restricted to the type "string"' },
+    ]);
+  });
+
+  it('finds a widened enum deep inside objects and arrays', () => {
+    const page = (kind: z.ZodType) => z.object({ activities: z.array(z.object({ kind })) });
+    expect(
+      compareResponse({ page: page(z.enum(['running'])) }, { page: page(z.enum(['running', 'trail_running'])) }),
+    ).toEqual([{ path: 'page.activities[].kind', message: 'enum value "trail_running" added' }]);
+  });
+
+  it.each([
+    ['a positive number now non-negative', z.number().positive(), z.number().nonnegative(), 'lower bound lowered to >= 0 (was > 0)'],
+    ['a maximum removed', z.number().max(10), z.number(), 'upper bound removed (was <= 10)'],
+    ['a higher maximum', z.number().max(10), z.number().max(20), 'upper bound raised to <= 20 (was <= 10)'],
+    ['a minimum length removed', z.string().min(1), z.string(), 'minLength removed (was 1)'],
+    ['a longer maximum length', z.string().max(10), z.string().max(20), 'maxLength raised to 20 (was 10)'],
+    ['a format removed', z.uuid(), z.string(), 'format changed to none (was "uuid")'],
+    ['a changed pattern', z.string().regex(/^\d+$/), z.string().regex(/^\w+$/), 'pattern changed'],
+  ])('fails on %s', (_, base, head, message) => {
+    expect(compareResponse({ value: base }, { value: head })).toContainEqual({ path: 'value', message });
+  });
+
+  it.each([
+    ['a raised minimum', z.number().nonnegative(), z.number().positive()],
+    ['a new maximum', z.number(), z.number().max(10)],
+    ['a new format', z.string(), z.uuid()],
+  ])('passes on %s', (_, base, head) => {
+    expect(compareResponse({ value: base }, { value: head })).toEqual([]);
+  });
+
+  it('fails when an endpoint is removed', () => {
+    expect(compareResponse({ activity, other: z.string() }, { activity })).toEqual([
+      { path: 'other', message: 'schema removed' },
+    ]);
+  });
+});
+
+describe('findBreakingChanges across directions', () => {
+  it('fails when a schema changes direction, which would change the rule it is checked against', () => {
+    const before = toJsonSchemaSnapshot({ body: { direction: 'response', schema: z.string() } });
+    const after = toJsonSchemaSnapshot({ body: { direction: 'request', schema: z.string() } });
+    expect(findBreakingChanges(before, after)).toEqual([
+      { path: 'body', message: 'direction changed to request (was response)' },
     ]);
   });
 });
