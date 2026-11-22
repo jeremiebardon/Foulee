@@ -2,16 +2,10 @@
 // each case lints a deliberate violation (or an allowed import) at a virtual path.
 // Runs as part of `pnpm lint` through `node --test`, outside the app's test runner.
 const assert = require('node:assert/strict');
-const path = require('node:path');
 const { test } = require('node:test');
-const { ESLint } = require('eslint');
+const { lintMessages } = require('./lint-messages');
 
-const eslint = new ESLint({ cwd: path.join(__dirname, '..') });
-
-async function boundaryErrors(filePath, code) {
-  const [result] = await eslint.lintText(code, { filePath });
-  return result.messages.filter((m) => m.ruleId === 'no-restricted-imports').map((m) => m.message);
-}
+const boundaryErrors = (filePath, code) => lintMessages('no-restricted-imports', filePath, code);
 
 const fails = async (filePath, code) =>
   assert.notDeepEqual(await boundaryErrors(filePath, code), [], `${filePath} should fail: ${code}`);
@@ -52,10 +46,7 @@ test('dependencies point one way: workouts <- plans <- calendar, dashboard', asy
 });
 
 test('app code reads its environment only through the config accessor', async () => {
-  const envErrors = async (filePath, code) => {
-    const [result] = await eslint.lintText(code, { filePath });
-    return result.messages.filter((m) => m.ruleId === 'no-restricted-properties');
-  };
+  const envErrors = (filePath, code) => lintMessages('no-restricted-properties', filePath, code);
   const read = 'export const dev = process.env.EXPO_PUBLIC_APP_VARIANT;';
   assert.notDeepEqual(await envErrors('src/features/dashboard/DashboardScreen.tsx', read), []);
   assert.notDeepEqual(await envErrors('src/db/client.ts', read), []);

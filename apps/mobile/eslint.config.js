@@ -64,16 +64,16 @@ const restrict = (...patterns) => ({ 'no-restricted-imports': ['error', { patter
 // Later config objects replace earlier options for the same rule, so each block lists every pattern it needs.
 const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) => {
   const forbidden = Object.keys(FEATURE_DEPS).filter((other) => !allowed.includes(other));
-  const reversed = {
+  const forbiddenFeatures = {
     regex: `^@/features/(${forbidden.join('|')})(/domain)?$`,
     message: `${feature} may import ${allowed.length ? `only ${allowed.join(', ')}` : 'no other feature'} (workouts <- plans <- calendar, dashboard); its own files are imported relatively.`,
   };
   return [
-    { files: [`src/features/${feature}/**`], rules: restrict(deepImport, parentImport, reversed) },
+    { files: [`src/features/${feature}/**`], rules: restrict(deepImport, parentImport, forbiddenFeatures) },
     {
       files: [`src/features/${feature}/*.ts`],
       ignores: ['**/*.repository.ts', '**/index.ts'],
-      rules: restrict(deepImport, parentImport, reversed, impureDomainImport, fullEntryFromDomain),
+      rules: restrict(deepImport, parentImport, forbiddenFeatures, impureDomainImport, fullEntryFromDomain),
     },
   ];
 });

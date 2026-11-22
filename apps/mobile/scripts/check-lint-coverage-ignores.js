@@ -2,17 +2,10 @@
 // threshold in jest.config.js is only honest if no file can opt lines out of it inline.
 // Runs as part of `pnpm lint` through `node --test`, outside the app's test runner.
 const assert = require('node:assert/strict');
-const path = require('node:path');
 const { test } = require('node:test');
-const { ESLint } = require('eslint');
+const { lintMessages } = require('./lint-messages');
 
-const eslint = new ESLint({ cwd: path.join(__dirname, '..') });
-const RULE = 'coverage/no-ignore-comments';
-
-async function ignoreErrors(filePath, code) {
-  const [result] = await eslint.lintText(code, { filePath });
-  return result.messages.filter((m) => m.ruleId === RULE);
-}
+const ignoreErrors = (filePath, code) => lintMessages('coverage/no-ignore-comments', filePath, code);
 
 const fails = async (code, filePath = 'src/features/plans/plan.ts') => {
   const errors = await ignoreErrors(filePath, code);
