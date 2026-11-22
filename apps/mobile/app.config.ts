@@ -2,6 +2,7 @@
 import 'tsx/cjs';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import { version } from './package.json';
+import { assertE2EOnlyInE2EProfile } from './src/shared/config/e2eGuard';
 import { resolveVariant } from './src/shared/config/variant';
 
 /*
@@ -15,6 +16,10 @@ import { resolveVariant } from './src/shared/config/variant';
  */
 const variant = resolveVariant(process.env.APP_VARIANT || process.env.EXPO_PUBLIC_APP_VARIANT);
 process.env.EXPO_PUBLIC_APP_VARIANT = variant.variant;
+
+// The e2e reset link must never ship: EXPO_PUBLIC_E2E only in the e2e build profile (EAS sets
+// EAS_BUILD_PROFILE on its build workers). See src/shared/config/e2eGuard.ts.
+assertE2EOnlyInE2EProfile({ e2e: process.env.EXPO_PUBLIC_E2E, buildProfile: process.env.EAS_BUILD_PROFILE });
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,

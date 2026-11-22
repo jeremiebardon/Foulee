@@ -16,6 +16,15 @@ on:
     tags:
       - v*
 
+defaults:
+  hooks:
+    # Only the update jobs run this hook. An update has no build profile, so the app config's e2e
+    # guard (src/shared/config/e2eGuard.ts) is run here as the `production` profile: it fails the
+    # job before publishing if EXPO_PUBLIC_E2E=true reached it (from the `production` environment).
+    before_update:
+      - name: Refuse an e2e update
+        run: EAS_BUILD_PROFILE=production pnpm exec expo config --type public > /dev/null
+
 jobs:
   fingerprint:
     name: Fingerprint
