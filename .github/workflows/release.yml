@@ -1,0 +1,72 @@
+name: Release
+
+# Releasing means merging a pull request (docs/release-guide.md). On every push to main:
+# 1. If apps/mobile/package.json holds a version that changesets released (it has a CHANGELOG.md
+#    entry) and that is not tagged yet, tag its commit `vX.Y.Z` and create the GitHub release.
+#    The tag starts the EAS release workflow (apps/mobile/.eas/workflows/release.yml): an
+#    over-the-air update, or store builds submitted to TestFlight and the Play internal track.
+# 2. If changesets are waiting, create or update the "Version Packages" pull request, which bumps
+#    the version and writes the changelog, then run the PR checks on it.
+# GitHub holds no Expo, Apple or Google credential for this: EAS reacts to the tag through its
+# GitHub app, and store credentials live in EAS.
+
+on:
+  push:
+    branches: [main]
+
+# One release run at a time, never cancelled half-way through a tag or a push.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # push the version branch and the tag, create the GitHub release
+      pull-requests: write # open and update the Version Packages pull request
+      actions: write # dispatch the PR checks on the Version Packages pull request
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the tag step reads the history and the existing tags
+
+      - uses: pnpm/action-setup@v4 # version comes from "packageManager"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Before changesets/action, which switches the working tree to the version branch.
+      - name: Tag the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node packages/release-tools/bin/tag-release.js
+
+      - name: Create or update the Version Packages pull request
+        id: changesets
+        uses: changesets/action@v2
+        with:
+          version-script: pnpm changeset version
+          # Squash merge makes the pull request title the commit subject: Conventional Commits.
+          pr-title: 'chore(release): version packages'
+          commit-message: 'chore(release): version packages'
+
+      # Pushes made with GITHUB_TOKEN start no pull_request run, so the required `check` would never
+      # report on the Version Packages pull request. A workflow_dispatch run on its branch reports
+      # `check` on the same head commit. (EAS starts the Maestro flows on it by itself.)
+      - name: Run the PR checks on the Version Packages pull request
+        if: steps.changesets.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pr-checks.yml --ref "changeset-release/$GITHUB_REF_NAME"

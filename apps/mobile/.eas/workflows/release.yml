@@ -1,0 +1,104 @@
+# Ships a release once its vX.Y.Z tag is pushed. The GitHub workflow .github/workflows/release.yml
+# pushes that tag when the Version Packages pull request is merged (docs/release-guide.md).
+# The native fingerprint decides how the release ships, per platform:
+# - a `production` store build with the same fingerprint exists: only JavaScript and assets changed,
+#   so the release is an over-the-air update on the `production` channel (runtime version policy
+#   `fingerprint` in app.config.ts keeps it off binaries it does not fit);
+# - none exists: native code changed, so EAS builds the `production` profile (build number
+#   incremented remotely) and submits it to TestFlight and the Play internal track.
+# Promotion to the public App Store and Play production track stays manual.
+# Re-run a release from the Expo dashboard or, in apps/mobile:
+#   pnpm dlx eas-cli@latest workflow:run .eas/workflows/release.yml --ref v1.2.3
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  fingerprint:
+    name: Fingerprint
+    type: fingerprint
+    # Same environment and variables as the production profile, so the hash matches its builds.
+    environment: production
+    env:
+      APP_VARIANT: production
+
+  get_android_build:
+    name: Find a matching Android store build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      platform: android
+      profile: production
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+
+  get_ios_build:
+    name: Find a matching iOS store build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      platform: ios
+      profile: production
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+
+  # Fingerprint unchanged: over-the-air update.
+  update_android:
+    name: Publish the Android update
+    needs: [get_android_build]
+    if: ${{ needs.get_android_build.outputs.build_id }}
+    type: update
+    environment: production
+    env:
+      APP_VARIANT: production
+    params:
+      platform: android
+      channel: production
+
+  update_ios:
+    name: Publish the iOS update
+    needs: [get_ios_build]
+    if: ${{ needs.get_ios_build.outputs.build_id }}
+    type: update
+    environment: production
+    env:
+      APP_VARIANT: production
+    params:
+      platform: ios
+      channel: production
+
+  # Fingerprint changed: new binaries for the testers.
+  build_android:
+    name: Build Android
+    needs: [get_android_build]
+    if: ${{ !needs.get_android_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  build_ios:
+    name: Build iOS
+    needs: [get_ios_build]
+    if: ${{ !needs.get_ios_build.outputs.build_id }}
+    type: build
+    params:
+      platform: ios
+      profile: production
+
+  submit_android:
+    name: Submit to the Play internal track
+    needs: [build_android]
+    type: submit
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      profile: production
+
+  submit_ios:
+    name: Submit to TestFlight
+    needs: [build_ios]
+    type: submit
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      profile: production

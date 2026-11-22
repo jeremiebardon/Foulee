@@ -20,8 +20,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: variant.name,
   slug: 'foulee',
-  // The package manifest is the single version source (bumped by changesets).
+  // The package manifest is the single version source (bumped by changesets). Build numbers are
+  // not set here: EAS keeps them remotely (eas.json `appVersionSource: remote`, `autoIncrement`).
   version,
+  // An over-the-air update only reaches builds with the same native fingerprint (EAS Update).
+  runtimeVersion: { policy: 'fingerprint' },
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
