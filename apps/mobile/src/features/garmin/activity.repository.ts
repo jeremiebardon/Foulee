@@ -4,7 +4,7 @@ import { db } from '@/db/client';
 import { activities, importCursors, sessions } from '@/db/schema';
 import type { Activity } from './activity';
 import type { ActivitiesPage } from './bff.client';
-import { activityRun } from './link';
+import { linking, unlinking } from './link';
 
 // ---- Reads -----------------------------------------------------------------
 
@@ -37,25 +37,32 @@ export const saveImport = ({ activities: page, nextCursor }: ActivitiesPage): nu
   });
 
 /**
- * Links an Activity to the Session it completes: the Session is done with the Activity's distance
- * and duration, as when a run is logged by hand. The unique index on `session_id` refuses a
- * second Activity for the same Session.
+ * Links an Activity to the Session it completes, as `linking` says: the Session is done with the
+ * Activity's distance and duration, and the Activity keeps what had been logged by hand on it.
+ * The unique index on `session_id` refuses a second Activity for the same Session.
  */
 export const linkActivity = (activity: Activity, sessionId: string) =>
   db.transaction((tx) => {
-    const run = activityRun(activity);
-    tx.update(activities).set({ sessionId, declinedSessionId: null }).where(eq(activities.garminActivityId, activity.garminActivityId)).run();
-    tx.update(sessions).set({ doneMeters: run.meters, doneSeconds: run.seconds }).where(eq(sessions.id, sessionId)).run();
+    const session = tx
+      .select({ id: sessions.id, doneMeters: sessions.doneMeters, doneSeconds: sessions.doneSeconds })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .get();
+    if (!session) return;
+    const writes = linking(activity, session);
+    tx.update(activities).set(writes.activity).where(eq(activities.garminActivityId, activity.garminActivityId)).run();
+    tx.update(sessions).set(writes.session).where(eq(sessions.id, sessionId)).run();
   });
 
 /**
- * Makes a linked Activity an Unplanned Activity again: its Session is no longer done, and is not
- * suggested for it again.
+ * Makes a linked Activity an Unplanned Activity again, as `unlinking` says: its Session gets back
+ * what had been logged on it by hand, or is no longer done, and is not suggested for it again.
  */
-export const unlinkActivity = ({ garminActivityId, sessionId }: Activity) =>
+export const unlinkActivity = (activity: Activity) =>
   db.transaction((tx) => {
-    tx.update(activities).set({ sessionId: null, declinedSessionId: sessionId }).where(eq(activities.garminActivityId, garminActivityId)).run();
-    if (sessionId !== null) tx.update(sessions).set({ doneMeters: null, doneSeconds: null }).where(eq(sessions.id, sessionId)).run();
+    const writes = unlinking(activity);
+    tx.update(activities).set(writes.activity).where(eq(activities.garminActivityId, activity.garminActivityId)).run();
+    if (activity.sessionId !== null) tx.update(sessions).set(writes.session).where(eq(sessions.id, activity.sessionId)).run();
   });
 
 /** The runner declined the suggested Session: the Activity stays unplanned and the suggestion goes away. */

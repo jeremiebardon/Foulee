@@ -138,6 +138,8 @@ describe('Garmin Activities in the calendar', () => {
     averageHeartRateBpm: null,
     sessionId,
     declinedSessionId: null,
+    handLoggedMeters: null,
+    handLoggedSeconds: null,
   });
 
   it('shows an Unplanned Activity on the local day it was run', async () => {
@@ -188,6 +190,23 @@ describe('Garmin Activities in the calendar', () => {
     expect(unlinkActivity).toHaveBeenCalledWith(linked);
     expect(logRun).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Marquer comme faite' })).toBeOnTheScreen();
+    expect(within(screen.getByTestId('garmin-activity-thu')).getByText('Activité non planifiée')).toBeOnTheScreen();
+  });
+
+  it('gives a Session logged by hand its own run back when the Activity linked over it is unlinked', async () => {
+    const user = userEvent.setup();
+    const thursday = activity('thu', '2026-11-19T18:00:00+01:00');
+    const loggedByHand = session('s2', 'p1', 'vma', 1, 3, { meters: 5000, seconds: 1500 });
+    givenData({ workouts: [footing, vma], plans: [tenK], sessions: [loggedByHand], activities: [thursday] });
+    await renderCalendar();
+    await user.press(day('jeudi 19 novembre'));
+    expect(screen.getByText('✓ Faite : 5 km en 25:00 · 5:00/km')).toBeOnTheScreen();
+
+    await user.press(screen.getByRole('button', { name: 'Lier à cette séance' }));
+    expect(screen.getByText('✓ Faite : 6 km en 33:00 · 5:30/km')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Délier l’activité' }));
+
+    expect(screen.getByText('✓ Faite : 5 km en 25:00 · 5:00/km')).toBeOnTheScreen();
     expect(within(screen.getByTestId('garmin-activity-thu')).getByText('Activité non planifiée')).toBeOnTheScreen();
   });
 });

@@ -35,6 +35,8 @@ const activity = (garminActivityId: string, startTime: string, distanceMeters: n
   averageHeartRateBpm,
   sessionId: null,
   declinedSessionId: null,
+  handLoggedMeters: null,
+  handLoggedSeconds: null,
 });
 /** Tuesday 17 November, 8 km in 44 min. */
 const tuesdayRun = activity('1001', '2026-11-17T07:30:00+01:00', 8000, 2640, 148);

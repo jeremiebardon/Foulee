@@ -35,6 +35,8 @@ const activity = (garminActivityId: string, startTime: string, more: Partial<Act
   averageHeartRateBpm: null,
   sessionId: null,
   declinedSessionId: null,
+  handLoggedMeters: null,
+  handLoggedSeconds: null,
   ...more,
 });
 /** Thursday 19 November, the day « VMA 10 × 400 » (s2) is planned in « Objectif 10 km ». */

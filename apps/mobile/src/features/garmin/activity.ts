@@ -18,6 +18,12 @@ export type Activity = {
   sessionId: string | null;
   /** The suggested Session the runner declined (or unlinked), so it is not suggested again. */
   declinedSessionId: string | null;
+  /**
+   * What had been logged by hand on the linked Session before this Activity was linked to it,
+   * given back to the Session on unlink; `null` when the Session was not done.
+   */
+  handLoggedMeters: number | null;
+  handLoggedSeconds: number | null;
 };
 
 /** An Activity as the BFF serves it (packages/contracts), unlinked until the runner links it. */
@@ -30,6 +36,8 @@ export const fromSummary = (summary: ActivitySummary): Activity => ({
   averageHeartRateBpm: summary.averageHeartRateBpm ?? null,
   sessionId: null,
   declinedSessionId: null,
+  handLoggedMeters: null,
+  handLoggedSeconds: null,
 });
 
 /** The local day the run happened on, where it was run: the date part of its offset start time. */

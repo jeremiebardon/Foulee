@@ -53,6 +53,9 @@ export const activities = sqliteTable('activities', {
     .references(() => sessions.id, { onDelete: 'set null' }),
   /** The suggested Session the runner declined (or unlinked) for this Activity, so it is not suggested again. */
   declinedSessionId: text().references(() => sessions.id, { onDelete: 'set null' }),
+  /** What had been logged by hand on the linked Session before the link, given back on unlink. */
+  handLoggedMeters: integer(),
+  handLoggedSeconds: integer(),
 });
 
 /** Where each import source resumes: one row per source, holding the cursor it last returned. */

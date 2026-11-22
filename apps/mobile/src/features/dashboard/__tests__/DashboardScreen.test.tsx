@@ -112,7 +112,7 @@ describe('dashboard of the selected plan', () => {
 
   it('counts Unplanned Activities in the totals, and a linked one once', async () => {
     const run = (garminActivityId: string, startTime: string, sessionId: string | null) => ({
-      garminActivityId, startTime, distanceMeters: 6000, durationSeconds: 1800, averagePaceSecondsPerKm: 300, averageHeartRateBpm: null, sessionId, declinedSessionId: null,
+      garminActivityId, startTime, distanceMeters: 6000, durationSeconds: 1800, averagePaceSecondsPerKm: 300, averageHeartRateBpm: null, sessionId, declinedSessionId: null, handLoggedMeters: null, handLoggedSeconds: null,
     });
     givenData({
       workouts: [footing, vma],

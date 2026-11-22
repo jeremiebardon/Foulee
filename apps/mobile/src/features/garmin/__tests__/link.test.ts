@@ -2,7 +2,7 @@ import { toSessionViews } from '@/features/plans/domain';
 import { session } from '@/test/fakeRepositories';
 import { footing, marathon, tenK, vma } from '@/test/fixtures';
 import type { Activity } from '../activity';
-import { activityRun, linkCandidates, suggestions } from '../link';
+import { linkCandidates, linking, suggestions, unlinking } from '../link';
 
 const run = (garminActivityId: string, startTime: string, distanceMeters = 8000, more: Partial<Activity> = {}): Activity => ({
   garminActivityId,
@@ -13,6 +13,8 @@ const run = (garminActivityId: string, startTime: string, distanceMeters = 8000,
   averageHeartRateBpm: null,
   sessionId: null,
   declinedSessionId: null,
+  handLoggedMeters: null,
+  handLoggedSeconds: null,
   ...more,
 });
 
@@ -98,7 +100,45 @@ describe('the Sessions an Activity can be linked to by hand', () => {
 });
 
 describe('linking an Activity to a Session', () => {
+  const thursday = run('a', '2026-11-19T18:00:00+01:00', 8012.6, { durationSeconds: 2640.4 });
+
   it('records the Activity’s distance and duration as what was run, the same as logging it by hand', () => {
-    expect(activityRun(run('a', '2026-11-19T18:00:00+01:00', 8012.6, { durationSeconds: 2640.4 }))).toEqual({ meters: 8013, seconds: 2640 });
+    expect(linking(thursday, session('thu19', 'p1', 'vma', 1, 3)).session).toEqual({ doneMeters: 8013, doneSeconds: 2640 });
+  });
+
+  it('links the Activity to the Session, which is no longer a declined suggestion for it', () => {
+    const declined = { ...thursday, declinedSessionId: 'thu19' };
+    expect(linking(declined, session('thu19', 'p1', 'vma', 1, 3)).activity).toMatchObject({ sessionId: 'thu19', declinedSessionId: null });
+  });
+
+  it('keeps what had been logged by hand on the Session, to give it back on unlink', () => {
+    const loggedByHand = session('thu19', 'p1', 'vma', 1, 3, { meters: 5000, seconds: 1500 });
+    expect(linking(thursday, loggedByHand).activity).toMatchObject({ handLoggedMeters: 5000, handLoggedSeconds: 1500 });
+  });
+});
+
+describe('unlinking an Activity from its Session', () => {
+  const linked = run('a', '2026-11-19T18:00:00+01:00', 8000, { sessionId: 'thu19' });
+
+  it('makes it an Unplanned Activity again, the Session no longer suggested for it', () => {
+    expect(unlinking(linked).activity).toEqual({ sessionId: null, declinedSessionId: 'thu19', handLoggedMeters: null, handLoggedSeconds: null });
+  });
+
+  it('leaves the Session not done when nothing had been logged on it by hand', () => {
+    expect(unlinking(linked).session).toEqual({ doneMeters: null, doneSeconds: null });
+  });
+
+  it('gives the Session back what had been logged on it by hand before the link', () => {
+    const overHandLogged = { ...linked, handLoggedMeters: 5000, handLoggedSeconds: 1500 };
+    expect(unlinking(overHandLogged).session).toEqual({ doneMeters: 5000, doneSeconds: 1500 });
+  });
+
+  it('undoes linking, whatever had been logged by hand', () => {
+    const notDone = session('thu19', 'p1', 'vma', 1, 3);
+    const loggedByHand = session('thu19', 'p1', 'vma', 1, 3, { meters: 5000, seconds: 1500 });
+    for (const before of [notDone, loggedByHand]) {
+      const { activity } = linking(run('a', '2026-11-19T18:00:00+01:00'), before);
+      expect(unlinking({ ...run('a', '2026-11-19T18:00:00+01:00'), ...activity }).session).toEqual({ doneMeters: before.doneMeters, doneSeconds: before.doneSeconds });
+    }
   });
 });

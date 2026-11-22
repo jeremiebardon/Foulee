@@ -9,6 +9,8 @@ const morningRun: Activity = {
   averageHeartRateBpm: 148,
   sessionId: null,
   declinedSessionId: null,
+  handLoggedMeters: null,
+  handLoggedSeconds: null,
 };
 
 describe('an imported Activity', () => {
