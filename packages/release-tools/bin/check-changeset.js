@@ -3,11 +3,12 @@
  * Fails when a pull request changes apps/mobile or packages/contracts without adding a changeset.
  * Run from the repository root, by the `check` job in .github/workflows/pr-checks.yml:
  *   node packages/release-tools/bin/check-changeset.js --base origin/main [--head-branch <branch>]
- * The diff is `<base>...HEAD`: what the branch changed since it left the base.
+ * The diff is `<base>...HEAD`: what the branch changed since it left the base. Then, except on the
+ * Version Packages branch, `changeset status --since=<base>` validates the changesets themselves.
  */
-const { execFileSync } = require('node:child_process');
+const { execFileSync, spawnSync } = require('node:child_process');
 const { parseArgs } = require('node:util');
-const { checkChangesets } = require('../src/changeset-check');
+const { checkChangesets, isVersionBranch } = require('../src/changeset-check');
 
 const { values } = parseArgs({
   options: {
@@ -27,6 +28,11 @@ const changedFiles = execFileSync('git', ['diff', '--name-only', '--diff-filter=
   .split('\n')
   .filter(Boolean);
 
-const result = checkChangesets({ changedFiles, headBranch: values['head-branch'] });
+const headBranch = values['head-branch'];
+const result = checkChangesets({ changedFiles, headBranch });
 (result.ok ? console.log : console.error)(result.message);
-process.exit(result.ok ? 0 : 1);
+if (!result.ok) process.exit(1);
+if (isVersionBranch(headBranch)) process.exit(0);
+
+const status = spawnSync('pnpm', ['changeset', 'status', `--since=${values.base}`], { stdio: 'inherit', shell: process.platform === 'win32' });
+process.exit(status.status ?? 1);

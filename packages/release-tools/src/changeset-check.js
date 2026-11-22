@@ -13,8 +13,11 @@ const isChangeset = (file) => /^\.changeset\/[^/]+\.md$/.test(file) && file !== 
 // changesets/action pushes the Version Packages pull request from `changeset-release/<base>`.
 const VERSION_BRANCH_PREFIX = 'changeset-release/';
 
+/** The Version Packages pull request's branch: it consumes the changesets, so it is exempt from both checks. */
+const isVersionBranch = (headBranch) => headBranch.startsWith(VERSION_BRANCH_PREFIX);
+
 function checkChangesets({ changedFiles, headBranch = '' }) {
-  if (headBranch.startsWith(VERSION_BRANCH_PREFIX)) {
+  if (isVersionBranch(headBranch)) {
     return { ok: true, message: 'Version Packages pull request: it consumes the changesets, none needed.' };
   }
   const released = changedFiles.filter((file) => RELEASED_PATHS.some((dir) => file.startsWith(dir)));
@@ -35,4 +38,4 @@ function checkChangesets({ changedFiles, headBranch = '' }) {
   };
 }
 
-module.exports = { checkChangesets };
+module.exports = { checkChangesets, isVersionBranch };

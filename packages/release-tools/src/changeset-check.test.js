@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { checkChangesets } = require('./changeset-check');
+const { checkChangesets, isVersionBranch } = require('./changeset-check');
 
 test('an app change without a changeset fails', () => {
   const result = checkChangesets({ changedFiles: ['apps/mobile/src/features/plans/plan.ts'] });
@@ -48,4 +48,10 @@ test('the Version Packages pull request needs none: it consumes the changesets',
 test('a path that only starts like the app folder is not the app', () => {
   const result = checkChangesets({ changedFiles: ['apps/mobile-web/index.ts', 'packages/contracts-v2/x.ts'] });
   assert.equal(result.ok, true);
+});
+
+test('only the Version Packages branch skips changeset validation', () => {
+  assert.equal(isVersionBranch('changeset-release/main'), true);
+  assert.equal(isVersionBranch('feat/09-tooling-testing-ci-cd'), false);
+  assert.equal(isVersionBranch(''), false);
 });
