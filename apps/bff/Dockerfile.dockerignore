@@ -1,0 +1,8 @@
+# Docker reads this file for apps/bff/Dockerfile, whatever the build context. The context is the
+# output of `turbo prune bff --docker`, which already leaves out git-ignored files; this is a second
+# guard so build output and local secrets never reach the image.
+**/node_modules
+**/dist
+**/coverage
+**/.turbo
+**/.env*.local

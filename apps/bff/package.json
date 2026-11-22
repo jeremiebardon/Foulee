@@ -4,6 +4,7 @@
   "private": true,
   "description": "Foulee backend-for-frontend: serves Garmin Activities in Foulee's own vocabulary (ADR 0005, 0007).",
   "main": "dist/main.js",
+  "files": ["dist"],
   "scripts": {
     "build": "nest build",
     "predev": "pnpm --filter @foulee/contracts build",

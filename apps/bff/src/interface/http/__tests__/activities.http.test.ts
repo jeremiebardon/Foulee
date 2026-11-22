@@ -16,7 +16,7 @@ import {
 } from '../../../domain';
 
 const TOKEN = 'a-long-random-bff-access-token';
-const env: Env = { garminPersonalApiKey: 'unused-here', bffAccessToken: TOKEN, port: 0 };
+const env: Env = { garminPersonalApiKey: 'unused-here', bffAccessToken: TOKEN, port: 0, gitSha: 'unknown' };
 
 function activity(
   id: string,

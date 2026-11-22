@@ -4,7 +4,7 @@
     "target": "ES2022",
     "module": "nodenext",
     "lib": ["ES2022"],
-    "types": ["jest"],
+    "types": ["jest", "node"],
     "isolatedModules": true,
     "noEmit": true
   },
