@@ -7,7 +7,7 @@
  * nothing when the version is already tagged or was never released by changesets.
  *   node packages/release-tools/bin/tag-release.js [--dry-run]
  * Needs full history and tags (actions/checkout with fetch-depth: 0), a git identity, and GH_TOKEN
- * for the `gh` CLI. Writes `tag` and `created` to $GITHUB_OUTPUT when it is set.
+ * for the `gh` CLI.
  */
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -27,12 +27,6 @@ const changelog = readIfExists(path.join(APP, 'CHANGELOG.md'));
 const existingTags = run('git', ['tag', '--list', 'v*']).split('\n').filter(Boolean);
 
 const plan = planReleaseTag({ version, changelog, existingTags });
-
-const output = (name, value) => {
-  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
-};
-output('tag', plan.tag);
-output('created', String(plan.action === 'create' && !dryRun));
 
 if (plan.action === 'exists') {
   console.log(`${plan.tag} already exists: nothing to release.`);
