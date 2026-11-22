@@ -8,7 +8,7 @@ import type { Workout } from '@/features/workouts/domain';
  * the data given to `givenData`, resolved by the real domain code; writes are `jest.fn()`s that
  * tests assert on. Wire them with a factory, so the database layer never loads:
  *
- *   jest.mock('./plan.repository', () => jest.requireActual('@/test/fakeRepositories').fakePlanRepository());
+ *   jest.mock('../../data/plan.repository', () => jest.requireActual('@/test/fakeRepositories').fakePlanRepository());
  */
 type Data = { workouts: Workout[]; plans: Plan[]; sessions: Session[]; activities: Activity[]; importCursor: string | null };
 

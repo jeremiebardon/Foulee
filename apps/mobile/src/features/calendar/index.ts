@@ -1,2 +1,2 @@
 // Public entry point of the calendar feature.
-export { CalendarScreen } from './CalendarScreen';
+export { CalendarScreen } from './screens/CalendarScreen';

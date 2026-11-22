@@ -1,8 +1,9 @@
 // Public entry point of the plans feature.
 export * from './domain';
-export { createPlan, logRun, useSessionViews } from './plan.repository';
-export { PlanPicker, useSelectedPlan } from './PlanPicker';
-export { SessionRow } from './SessionRow';
-export { PlanDetailScreen } from './PlanDetailScreen';
-export { PlanEditorScreen } from './PlanEditorScreen';
-export { PlanListScreen } from './PlanListScreen';
+export { createPlan, logRun, useSessionViews } from './data/plan.repository';
+export { useSelectedPlan } from './hooks/useSelectedPlan';
+export { PlanPicker } from './components/PlanPicker';
+export { SessionRow } from './components/SessionRow';
+export { PlanDetailScreen } from './screens/PlanDetailScreen';
+export { PlanEditorScreen } from './screens/PlanEditorScreen';
+export { PlanListScreen } from './screens/PlanListScreen';

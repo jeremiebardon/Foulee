@@ -29,3 +29,7 @@ Some checks are not Jest tests and have no coverage threshold. They run with `no
 ## Addendum: where tests live
 
 Every test file sits in a `__tests__` folder next to the code it tests, in every workspace. End-to-end tests are the exception: the Maestro flows stay in `apps/mobile/.maestro/`. Jest matches only files under `__tests__`, and the shared ESLint config fails a `*.test.*` or `*.spec.*` file anywhere else, so a misplaced test is a lint error instead of a test that never runs.
+
+## Addendum: the repository path
+
+Repository modules now live in each feature's `data/` folder (ADR 0008), so the coverage exclusion is `src/features/*/data/*.repository.ts` instead of `**/*.repository.ts`. It excludes the same files, and the repositories stay the one mock seam of screen tests. The service adapters in `src/shared/services/` are not excluded: their tests run under Jest with the libraries stubbed or mocked.

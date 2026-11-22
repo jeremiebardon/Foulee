@@ -11,8 +11,8 @@ module.exports = {
   /*
    * Coverage scope (ADR 0003). Every file under src/ counts, so new code is in scope by default.
    * This list is the only place code leaves it: inline ignore hints fail lint (eslint.config.js).
-   * - Repository modules, the database layer and the route files: excluded by ADR 0003.
-   *   Repositories and src/db read and write through expo-sqlite, whose native live queries
+   * - Repository modules (a feature's data/*.repository.ts), the database layer and the route files:
+   *   excluded by ADR 0003. Repositories and src/db read and write through expo-sqlite, whose native live queries
    *   cannot run under Jest; screen tests mock the repositories instead. Route files in src/app
    *   only compose (re-export a screen, forward a call, wire navigators); any decision of their
    *   own belongs in a covered module (ADR 0003 addendum).
@@ -30,7 +30,7 @@ module.exports = {
    */
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
-    '!**/*.repository.ts',
+    '!src/features/*/data/*.repository.ts',
     '!src/db/**',
     '!src/app/**',
     '!src/devtools/**',
