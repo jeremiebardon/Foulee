@@ -2,7 +2,7 @@
   "name": "@foulee/release-tools",
   "version": "0.0.0",
   "private": true,
-  "description": "Release scripts run by GitHub Actions: the changeset-required PR check and the vX.Y.Z release tag (docs/release-guide.md).",
+  "description": "CI scripts run by GitHub Actions: the affected packages, the changeset-required PR check and the vX.Y.Z release tag (docs/release-guide.md).",
   "scripts": {
     "lint": "eslint .",
     "test": "node --test"
