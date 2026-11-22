@@ -33,6 +33,27 @@ test('inside a feature, folders import only the folders before them', async () =
   await fails('src/features/garmin/data/bff.api.ts', "import { useLinking } from '../hooks/useLinking';");
   await fails('src/features/garmin/hooks/useLinking.ts', "import { ActivityCard } from '../components/ActivityCard';");
   await fails('src/features/garmin/components/ActivityCard.tsx', "import { SettingsScreen } from '../screens/SettingsScreen';");
+  // A later folder through its own index.ts is a later folder too.
+  await fails('src/features/garmin/data/bff.api.ts', "import { useLinking } from '../hooks';");
+  await fails('src/features/garmin/hooks/useLinking.ts', "import { ActivityCard } from '../components';");
+  await fails('src/features/garmin/data/__tests__/bff.api.test.ts', "import { useLinking } from '../../hooks';");
+  await passes('src/features/garmin/hooks/useLinking.ts', "import { linkActivity } from '../data';");
+});
+
+test("no folder reaches the feature's own entry point, which re-exports every folder", async () => {
+  for (const specifier of ['..', '../', '../index']) {
+    await fails('src/features/garmin/domain/link.ts', `import { x } from '${specifier}';`);
+    await fails('src/features/garmin/data/bff.api.ts', `import { x } from '${specifier}';`);
+    await fails('src/features/garmin/hooks/useLinking.ts', `import { x } from '${specifier}';`);
+    await fails('src/features/garmin/components/ActivityCard.tsx', `import { x } from '${specifier}';`);
+    await fails('src/features/garmin/screens/SettingsScreen.tsx', `import { x } from '${specifier}';`);
+  }
+  // Tests sit one level down, so '../..' is the entry point there: it stays allowed, as the auth tests use it.
+  await passes('src/features/auth/components/__tests__/AuthProvider.test.tsx', "import { AuthProvider } from '../..';");
+  await passes('src/features/garmin/domain/__tests__/link.test.ts', "import { x } from '..';");
+  await fails('src/features/garmin/domain/__tests__/link.test.ts', "import { x } from '../../..';");
+  // ... and `../..` without a trailing slash leaves a role folder's feature like `../../`.
+  await fails('src/features/garmin/domain/link.ts', "import { x } from '../..';");
 });
 
 test('no relative import leaves the feature, at any depth', async () => {
@@ -41,6 +62,7 @@ test('no relative import leaves the feature, at any depth', async () => {
   await passes('src/features/plans/domain/__tests__/plan.test.ts', "import { planEnd } from '../plan';");
   await passes('src/features/plans/screens/__tests__/PlanListScreen.test.tsx', "import { givenData } from '@/test/fakeRepositories';");
   await fails('src/features/plans/index.ts', "import { useWorkouts } from '../workouts';");
+  await fails('src/features/plans/index.ts', "import { useWorkouts } from '..';");
 });
 
 test('test files live in a __tests__ folder', async () => {
@@ -76,6 +98,10 @@ test('domain folders stay pure', async () => {
   for (const specifier of ['react', 'react-native', '@/db/client', 'expo-sqlite', 'drizzle-orm', 'expo-secure-store']) {
     await fails('src/features/workouts/domain/workout.ts', `import x from '${specifier}';`);
   }
+  // The services reach the network and the stores: not from domain code, nor through a deep path.
+  await fails('src/features/garmin/domain/link.ts', "import { services } from '@/shared/services';");
+  await fails('src/features/garmin/domain/link.ts', "import type { HttpResponse } from '@/shared/services/http/HttpClient';");
+  await fails('src/features/garmin/domain/index.ts', "import { services } from '@/shared/services';");
   // index.ts re-exports screens, so domain files use the pure `domain` entry point instead.
   await fails('src/features/plans/domain/plan.ts', "import { workoutTotals } from '@/features/workouts';");
   await passes('src/features/plans/domain/plan.ts', "import { workoutTotals } from '@/features/workouts/domain';");
@@ -147,6 +173,37 @@ test('only service adapters reach the service libraries', async () => {
   }
   assert.deepEqual(await propertyErrors('src/shared/config/appConfig.ts', readsEnv), []);
   assert.notDeepEqual(await propertyErrors('src/shared/config/appConfig.ts', viaGlobalObject[0]), []);
+
+  // ... also through a path inside the package, and the services only through their entry point.
+  for (const filePath of ['src/features/garmin/data/bffAccess.store.ts', 'src/shared/lib/format.ts', 'src/app/(tabs)/settings.tsx']) {
+    await fails(filePath, "import { getItemAsync } from 'expo-secure-store/build/SecureStore';");
+    await fails(filePath, "import Storage from 'expo-sqlite/kv-store/index';");
+  }
+  const deepHttp = "import type { HttpResponse } from '@/shared/services/http/HttpClient';";
+  const deepAdapter = "import { expoSecureStore } from '@/shared/services/secureStore/expoSecureStore';";
+  for (const filePath of [
+    'src/features/garmin/data/bff.api.ts',
+    'src/features/garmin/hooks/useLinking.ts',
+    'src/features/garmin/screens/SettingsScreen.tsx',
+    'src/features/garmin/index.ts',
+    'src/features/garmin/utils/x.ts',
+    'src/shared/lib/format.ts',
+    'src/shared/ui/kit.tsx',
+    'src/app/(tabs)/settings.tsx',
+    'src/db/client.ts',
+  ]) {
+    await fails(filePath, deepHttp);
+    await fails(filePath, deepAdapter);
+    await passes(filePath, "import { services, HttpNetworkError, type HttpResponse } from '@/shared/services';");
+  }
+  // A root file other than index.ts is linted as a domain file, so the services are out of its reach too.
+  await fails('src/features/garmin/activity2.ts', deepHttp);
+  // The adapters, and test code (the fakes build on the interfaces), may use the internals.
+  await passes('src/shared/services/index.ts', "import { fetchHttpClient } from './http/fetchHttpClient';");
+  await passes('src/shared/services/__tests__/services.test.ts', "import { expoSecureStore } from '@/shared/services/secureStore/expoSecureStore';");
+  await passes('src/test/fakeServices.ts', deepHttp);
+  await passes('src/features/garmin/data/__tests__/bff.api.test.ts', deepHttp);
+  await passes('src/e2e/bffStub.ts', deepHttp);
 
   // Only the service adapters import them, and only they call the network.
   await passes('src/shared/services/secureStore/expoSecureStore.ts', secure);

@@ -1,6 +1,5 @@
 import { errorBodySchema, listActivitiesResponseSchema } from '@foulee/contracts';
-import { services } from '@/shared/services';
-import type { HttpResponse } from '@/shared/services/http/HttpClient';
+import { services, type HttpResponse } from '@/shared/services';
 import { fromSummary, type Activity } from '../domain/activity';
 import type { BffAccess } from '../domain/bffAccess';
 

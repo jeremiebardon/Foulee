@@ -5,6 +5,11 @@ import type { KvStore } from './kvStore/KvStore';
 import { expoSecureStore } from './secureStore/expoSecureStore';
 import type { SecureStore } from './secureStore/SecureStore';
 
+export { HttpNetworkError } from './http/HttpClient';
+export type { HttpClient, HttpMethod, HttpRequest, HttpResponse } from './http/HttpClient';
+export type { KvStore } from './kvStore/KvStore';
+export type { SecureStore } from './secureStore/SecureStore';
+
 export type Services = { http: HttpClient; secureStore: SecureStore; kvStore: KvStore };
 
 /** The composition root: the one place the app's outside-world adapters are chosen. */

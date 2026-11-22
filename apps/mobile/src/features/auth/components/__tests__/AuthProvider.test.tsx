@@ -39,7 +39,7 @@ describe('auth provider', () => {
     expect(screen.getByRole('button', { name: 'Se connecter' })).toBeOnTheScreen();
   });
 
-  it('starts signed in when a session was saved before, with no login screen first', async () => {
+  it('starts signed in when a session was saved before, showing the account and not the sign-in button', async () => {
     services.kvStore.set('auth.session', JSON.stringify({ email: 'coureur@exemple.com', signedInAt: 1 }));
     await launch();
     expect(screen.getByText('Connecté : coureur@exemple.com')).toBeOnTheScreen();

@@ -8,5 +8,3 @@ export function PlanPicker() {
   if (plans.length < 2 || !selected) return null;
   return <Chips testID="plan-picker" options={Object.fromEntries(plans.map((p) => [p.id, p.name]))} value={selected.id} onChange={selectPlan} />;
 }
-
-export const useSelectedPlan = () => usePlans().find((p) => p.selected) ?? null;

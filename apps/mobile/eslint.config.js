@@ -17,15 +17,16 @@ const expoConfig = require('@foulee/eslint-config/expo');
  * - outside a feature, import it only through an entry point (`@/features/plans`,
  *   `@/features/plans/domain`); domain files use only the domain entry point;
  * - inside a feature, a file imports its own folder (`./plan`) and the folders before it in the order
- *   above (`../domain/plan`), never a later one; no relative import leaves the feature, at any depth;
- *   index.ts may import any folder;
+ *   above (`../domain/plan`), never a later one, nor the feature's entry point (`..`, `../index`);
+ *   no relative import leaves the feature, at any depth; index.ts may import any folder;
  * - dependencies point one way: workouts <- plans <- garmin <- calendar, dashboard (FEATURE_DEPS);
  * - domain files import no React, React Native, Expo module or database code, and call no network;
  * - shared code imports no feature;
  * - only the service adapters in src/shared/services import the libraries behind a service
  *   (expo-secure-store, expo-sqlite/kv-store) or call the network (fetch, XMLHttpRequest); everything
- *   else uses `services`. Exempt: src/e2e (patches fetch, seeds stores), src/devtools, src/test and
- *   every __tests__ folder.
+ *   else uses `services` and its types, imported from '@/shared/services' and never from the files
+ *   behind it; domain files use no service at all. Exempt: src/e2e (patches fetch, seeds stores),
+ *   src/devtools, src/test and every __tests__ folder.
  * Route files in src/app are not exempt: they re-export screens from the entry points.
  * Checked against deliberate violations by __tests__/lint-boundaries.test.js.
  */
@@ -54,8 +55,8 @@ const deepImport = {
   message: "Import another feature only through its entry point, e.g. '@/features/plans'.",
 };
 const impureDomainImport = {
-  regex: '^(react|react-native|expo(-[a-z0-9-]+)?|drizzle-orm)(/|$)|^@/db(/|$)',
-  message: 'Domain files stay pure: no React, React Native, Expo module or database. Use a screen, a hook or the data folder.',
+  regex: '^(react|react-native|expo(-[a-z0-9-]+)?|drizzle-orm)(/|$)|^@/db(/|$)|^@/shared/services(/|$)',
+  message: 'Domain files stay pure: no React, React Native, Expo module, database or service. Use a screen, a hook or the data folder.',
 };
 const noNetworkInDomain = {
   'no-restricted-globals': [
@@ -69,9 +70,15 @@ const fullEntryFromDomain = {
   message: "Domain files import another feature's pure entry point, e.g. '@/features/plans/domain'.",
 };
 const serviceLibraries = {
-  regex: '^expo-secure-store$|^expo-sqlite/kv-store$',
+  regex: '^(expo-secure-store|expo-sqlite/kv-store)(/|$)',
   message: "Use the secure store and key-value store services ('@/shared/services'): only their adapters import these libraries.",
 };
+const serviceInternals = {
+  regex: '^@/shared/services/.+',
+  message: "Import the services and their types from '@/shared/services', not from the files behind it.",
+};
+// What app code may not import; test code and the adapters are exempt (SERVICE_EXEMPT).
+const serviceImports = [serviceLibraries, serviceInternals];
 const anyFeature = {
   regex: '(^|/)features(/|$)',
   message: 'Shared code is used by features and imports none of them.',
@@ -102,13 +109,18 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
   // `../` repeated `levels` times: from a role folder `../` is a sibling folder, `../../` is outside the feature.
   const up = (levels) => `^(\\.\\./){${levels}}`;
   const leavesFeature = (levels) => ({
-    regex: up(levels),
+    regex: `^(\\.\\./){${levels - 1}}\\.\\.(/|$)`,
     message: "This import leaves the feature: import other features through their entry point, e.g. '@/features/plans'.",
   });
   const laterFolder = (levels, later) => ({
-    regex: `${up(levels)}(${later.join('|')})/`,
+    regex: `${up(levels)}(${later.join('|')})(/|$)`,
     message: `Folders of a feature import only the folders before them (${ROLES.join(' < ')}).`,
   });
+  // From a role folder, `..` and `../index` are the feature's entry point, which re-exports every folder.
+  const ownEntryPoint = {
+    regex: '^\\.\\.(/(index)?)?$',
+    message: "The feature's entry point re-exports every folder: import the folder you need, e.g. '../domain/plan'.",
+  };
   return [
     // Every file of the feature, whatever its place: no other feature's internals, no other feature
     // the feature does not depend on, no climbing out of the feature. The blocks below override this
@@ -118,10 +130,10 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
     {
       files: [`src/features/${feature}/**`],
       ignores: SERVICE_EXEMPT,
-      rules: restrict(deepImport, forbiddenFeatures, leavesFeature(2), serviceLibraries),
+      rules: restrict(deepImport, forbiddenFeatures, leavesFeature(2), ...serviceImports),
     },
     // Only index.ts, the entry point, sits at the feature's root; it may import any folder.
-    { files: [`src/features/${feature}/index.ts`], rules: restrict(deepImport, forbiddenFeatures, leavesFeature(1), serviceLibraries) },
+    { files: [`src/features/${feature}/index.ts`], rules: restrict(deepImport, forbiddenFeatures, leavesFeature(1), ...serviceImports) },
     // Any other file at the root belongs in a role folder: until it is moved, it is linted as a domain file.
     {
       files: [`src/features/${feature}/*.{ts,tsx}`],
@@ -137,8 +149,9 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
         leavesFeature(levels + 1),
         ...(later.length > 0 ? [laterFolder(levels, later)] : []),
       ];
-      // Tests, being exempt, do not list `serviceLibraries`.
-      const inApp = (levels) => [...own(levels), serviceLibraries];
+      // Tests, being exempt, list neither the service patterns nor `ownEntryPoint`: from a test,
+      // `../..` is the feature's entry point, which they may import.
+      const inApp = (levels) => [...own(levels), ownEntryPoint, ...serviceImports];
       const domainOnly = role === 'domain' ? [impureDomainImport, fullEntryFromDomain] : [];
       return [
         {
@@ -214,10 +227,10 @@ module.exports = defineConfig([
   { ignores: ['src/db/migrations/*'] },
   { files: ['src/**'], rules: restrict(deepImport) },
   // The block above covers the exempt code; the next adds the service libraries and the network for the rest.
-  { files: ['src/**'], ignores: SERVICE_EXEMPT, rules: { ...restrict(deepImport, serviceLibraries), ...noNetworkOutsideServices } },
+  { files: ['src/**'], ignores: SERVICE_EXEMPT, rules: { ...restrict(deepImport, ...serviceImports), ...noNetworkOutsideServices } },
   ...featureBlocks,
   { files: ['src/shared/**'], rules: restrict(anyFeature) },
-  { files: ['src/shared/**'], ignores: SERVICE_EXEMPT, rules: restrict(anyFeature, serviceLibraries) },
+  { files: ['src/shared/**'], ignores: SERVICE_EXEMPT, rules: restrict(anyFeature, ...serviceImports) },
   envOnlyThroughAppConfig,
   ...outsideServices,
 ]);

@@ -12,7 +12,12 @@ export const fetchHttpClient = (): HttpClient => ({
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
-      return { status: response.status, ok: response.ok, body: await response.json().catch(() => null) };
+      const parsed = await response.json().catch(() => {
+        // A timeout while the body streams is a missing response, not an empty one.
+        if (controller.signal.aborted) throw new HttpNetworkError('The response was cut off');
+        return null;
+      });
+      return { status: response.status, ok: response.ok, body: parsed };
     } catch {
       throw new HttpNetworkError('The request got no response');
     } finally {

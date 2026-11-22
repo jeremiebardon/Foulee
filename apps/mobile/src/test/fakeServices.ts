@@ -51,7 +51,8 @@ const services: Services = {
   },
 };
 
-export const fakeServicesModule = () => ({ services });
+/** `HttpNetworkError` comes along because it is part of the entry point the module stands in for. */
+export const fakeServicesModule = () => ({ services, HttpNetworkError });
 
 export const givenHttpResponse = (response: HttpResponse | HttpNetworkError) => void httpQueue.push(response);
 export const lastHttpRequest = () => lastRequest;

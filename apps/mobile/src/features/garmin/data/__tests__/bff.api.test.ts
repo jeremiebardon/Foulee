@@ -1,4 +1,4 @@
-import { HttpNetworkError } from '@/shared/services/http/HttpClient';
+import { HttpNetworkError } from '@/shared/services';
 import { givenHttpResponse, lastHttpRequest, resetFakeServices } from '@/test/fakeServices';
 import { BffError, fetchActivitiesSince } from '../bff.api';
 

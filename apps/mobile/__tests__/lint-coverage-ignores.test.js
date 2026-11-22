@@ -7,12 +7,12 @@ const { lintMessages } = require('./lint-messages');
 
 const ignoreErrors = (filePath, code) => lintMessages('coverage/no-ignore-comments', filePath, code);
 
-const fails = async (code, filePath = 'src/features/plans/plan.ts') => {
+const fails = async (code, filePath = 'src/features/plans/domain/plan.ts') => {
   const errors = await ignoreErrors(filePath, code);
   assert.equal(errors.length, 1, `${filePath} should fail once: ${code}`);
   assert.equal(errors[0].severity, 2, 'an ignore comment is an error, so lint exits non-zero');
 };
-const passes = async (code, filePath = 'src/features/plans/plan.ts') =>
+const passes = async (code, filePath = 'src/features/plans/domain/plan.ts') =>
   assert.deepEqual(await ignoreErrors(filePath, code), []);
 
 test('istanbul hints (Jest babel coverage) fail lint', async () => {
@@ -31,9 +31,9 @@ test('V8 coverage hints fail lint', async () => {
 });
 
 test('hints fail in screens, tests and anywhere else in the app', async () => {
-  await fails('export const A = () => <>{/* istanbul ignore next */}</>;', 'src/features/plans/PlanPicker.tsx');
+  await fails('export const A = () => <>{/* istanbul ignore next */}</>;', 'src/features/plans/components/PlanPicker.tsx');
   await fails('/* istanbul ignore next */\nexport const a = 1;', 'src/shared/ui/kit.tsx');
-  await fails('/* istanbul ignore next */\nexport const a = 1;', 'src/features/plans/__tests__/plan.test.ts');
+  await fails('/* istanbul ignore next */\nexport const a = 1;', 'src/features/plans/domain/__tests__/plan.test.ts');
 });
 
 test('ordinary comments and prose about the rule pass', async () => {

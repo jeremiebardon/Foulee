@@ -1,5 +1,4 @@
-import { services } from '@/shared/services';
-import { HttpNetworkError } from '@/shared/services/http/HttpClient';
+import { HttpNetworkError, services } from '@/shared/services';
 import { failNextSecureRead, failNextSecureWrite, givenHttpResponse, lastHttpRequest, resetFakeServices } from '@/test/fakeServices';
 
 jest.mock('@/shared/services', () => jest.requireActual('@/test/fakeServices').fakeServicesModule());

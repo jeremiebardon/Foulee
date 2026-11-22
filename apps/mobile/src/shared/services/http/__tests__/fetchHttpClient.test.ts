@@ -72,6 +72,20 @@ describe('fetchHttpClient', () => {
     await assertion;
   });
 
+  it('reports HttpNetworkError when the timeout strikes while the body streams', async () => {
+    jest.useFakeTimers();
+    globalThis.fetch = jest.fn(
+      async (_url: unknown, init?: RequestInit) =>
+        respond(200, () => new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new Error('aborted'))))),
+    );
+
+    const pending = fetchHttpClient().request({ method: 'GET', url: 'https://bff.test/x', timeoutMs: 20_000 });
+    const assertion = expect(pending).rejects.toBeInstanceOf(HttpNetworkError);
+    await jest.advanceTimersByTimeAsync(20_000);
+
+    await assertion;
+  });
+
   it('leaves no timer behind once a response arrives', async () => {
     jest.useFakeTimers();
     globalThis.fetch = jest.fn().mockResolvedValue(respond(200, async () => ({})));
