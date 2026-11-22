@@ -14,15 +14,19 @@ module.exports = {
    * - Repository modules, the database layer and the route files: excluded by ADR 0003.
    *   Repositories and src/db read and write through expo-sqlite, whose native live queries
    *   cannot run under Jest; screen tests mock the repositories instead. Route files in src/app
-   *   only re-export screens, which are tested in their features. Maestro flows cover all three.
-   * - src/devtools: development-only wiring of Rozenite and Drizzle Studio, required behind
-   *   `__DEV__` and absent from every shipped bundle (e2e builds included). It has no logic of
-   *   its own; a Jest test could only check that mocked hooks were called.
-   * - src/test and *.test.*: test code (fakes, fixtures, helpers), not app code. It runs in
-   *   every test that uses it.
+   *   only compose (re-export a screen, forward a call, wire navigators); any decision of their
+   *   own belongs in a covered module (ADR 0003 addendum).
+   *   Maestro flows cover all three.
+   * - src/devtools (ADR 0003 addendum): development-only wiring of Rozenite and Drizzle Studio,
+   *   required behind `__DEV__` and absent from every shipped bundle (e2e builds included), so no
+   *   Maestro flow reaches it either. It has no logic of its own; a Jest test could only check
+   *   that mocked hooks were called.
+   * - src/test and *.test.* (ADR 0003 addendum): test code (fakes, fixtures, helpers), not app
+   *   code. It runs in every test that uses it.
    * - *.d.ts: type declarations, nothing runs.
    * Code outside src/ (app.config.ts, metro, babel, eslint configs) is build configuration;
-   * its one piece of logic, variant resolution, lives in src/shared/config and is in scope.
+   * its logic (variant resolution, the e2e build guard) lives in src/shared/config and is in scope.
+   * The node --test self-tests in scripts/ run in `pnpm lint` (ADR 0003 addendum).
    */
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
