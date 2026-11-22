@@ -49,9 +49,18 @@ test('domain files stay pure: no React, React Native or database', async () => {
   await passes('src/features/workouts/WorkoutSummary.tsx', "import { View } from 'react-native';");
 });
 
-test('dependencies point one way: workouts <- plans <- calendar, dashboard', async () => {
+test('dependencies point one way: workouts <- plans <- garmin <- calendar, dashboard', async () => {
   await passes('src/features/calendar/CalendarScreen.tsx', "import { PlanPicker } from '@/features/plans';");
   await passes('src/features/dashboard/DashboardScreen.tsx', "import { WorkoutSummary } from '@/features/workouts';");
+  await passes('src/features/garmin/ActivityImportScreen.tsx', "import { PlanPicker } from '@/features/plans';");
+  await passes('src/features/garmin/activity.ts', "import { sessionDate } from '@/features/plans/domain';");
+  await passes('src/features/garmin/activity.ts', "import { workoutTotals } from '@/features/workouts/domain';");
+  await passes('src/features/dashboard/DashboardScreen.tsx', "import { GarminImportLink } from '@/features/garmin';");
+  await passes('src/features/calendar/CalendarScreen.tsx', "import { activityDate } from '@/features/garmin/domain';");
+  await fails('src/features/plans/plan.ts', "import { activityDate } from '@/features/garmin/domain';");
+  await fails('src/features/workouts/WorkoutListScreen.tsx', "import { GarminImportLink } from '@/features/garmin';");
+  await fails('src/features/garmin/ActivityImportScreen.tsx', "import { computeStats } from '@/features/dashboard';");
+  await fails('src/features/garmin/ActivityImportScreen.tsx', "import { LogRunSheet } from '@/features/calendar';");
   await fails('src/features/workouts/workout.ts', "import { planEnd } from '@/features/plans/domain';");
   await fails('src/features/workouts/WorkoutListScreen.tsx', "import { PlanPicker } from '@/features/plans';");
   await fails('src/features/plans/plan.ts', "import { computeStats } from '@/features/dashboard';");

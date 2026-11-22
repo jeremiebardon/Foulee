@@ -4,6 +4,7 @@ import { ActivityIndicator } from 'react-native';
 import { databaseReady } from '@/db/client';
 import { e2eReady } from '@/e2e/startup';
 import { AuthProvider, authGateway, useAuth } from '@/features/auth';
+import { headerOptions } from '@/shared/ui/kit';
 
 // A failed database open or migration lands in Expo Router's error screen, with a retry.
 export { ErrorBoundary } from 'expo-router';
@@ -42,6 +43,8 @@ function Routes() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="settings" options={{ ...headerOptions, headerShown: true, title: 'Réglages' }} />
+        <Stack.Screen name="garmin" options={{ ...headerOptions, headerShown: true, title: 'Activités Garmin' }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" />
