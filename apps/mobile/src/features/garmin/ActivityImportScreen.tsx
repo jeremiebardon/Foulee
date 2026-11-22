@@ -1,12 +1,11 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl } from 'react-native';
-import { formatLongDate } from '@/shared/lib/dates';
-import { formatDistance, formatDuration, formatPace } from '@/shared/lib/format';
 import { Button, Card, Empty, Screen, Txt } from '@/shared/ui/kit';
 import { color } from '@/shared/ui/theme';
-import { activityDate, newestFirst, type Activity } from './activity';
-import { readImportCursor, saveImport, useActivities } from './activity.repository';
+import { newestFirst } from './activity';
+import { readImportCursor, saveImport } from './activity.repository';
+import { ActivityCard, useLinking } from './ActivityCard';
 import { BffError, fetchActivitiesSince, type ImportFailure } from './bff.client';
 import { useGarminImport } from './bffAccess';
 
@@ -41,7 +40,8 @@ async function importNew(bffUrl: string, token: string): Promise<Outcome> {
  */
 export function ActivityImportScreen() {
   const { bffUrl, token } = useGarminImport();
-  const list = newestFirst(useActivities());
+  const linking = useLinking();
+  const list = newestFirst(linking.activities);
   // The screen imports as soon as it opens, so it starts out importing.
   const [importing, setImporting] = useState(true);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -91,19 +91,8 @@ export function ActivityImportScreen() {
       {list.length === 0 ? (
         <Empty testID="garmin-import-empty" title="Aucune activité" text="Tirer vers le bas pour importer les sorties de la montre." />
       ) : (
-        list.map((activity) => <ActivityRow key={activity.garminActivityId} activity={activity} />)
+        list.map((activity) => <ActivityCard key={activity.garminActivityId} activity={activity} linking={linking} />)
       )}
     </Screen>
-  );
-}
-
-function ActivityRow({ activity }: { activity: Activity }) {
-  const details = [formatDistance(activity.distanceMeters), formatDuration(activity.durationSeconds), formatPace(activity.averagePaceSecondsPerKm)];
-  if (activity.averageHeartRateBpm !== null) details.push(`${activity.averageHeartRateBpm} bpm`);
-  return (
-    <Card testID={`garmin-activity-${activity.garminActivityId}`}>
-      <Txt v="h3">{formatLongDate(activityDate(activity))}</Txt>
-      <Txt v="muted">{details.join(' · ')}</Txt>
-    </Card>
   );
 }
