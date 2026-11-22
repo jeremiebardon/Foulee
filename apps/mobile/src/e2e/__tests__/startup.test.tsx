@@ -80,7 +80,7 @@ describe('e2e launch link at startup', () => {
     await launchWith('foulee://e2e?seed=demo&signedIn=true&bff=stub', true);
     expect(screen.getByText('Import Garmin prêt')).toBeOnTheScreen();
     const page = await fetchActivitiesSince({ bffUrl: 'https://bff.example', token: 'any' }, null);
-    expect(page.activities.map((a) => a.garminActivityId)).toEqual(['e2e-1']);
+    expect(page.activities.map((a) => a.garminActivityId)).toEqual(['e2e-thursday', 'e2e-1']);
   });
 
   it('leaves the Garmin import alone otherwise', async () => {
