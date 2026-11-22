@@ -92,10 +92,17 @@ const featureBlocks = Object.entries(FEATURE_DEPS).flatMap(([feature, allowed]) 
     message: `Folders of a feature import only the folders before them (${ROLES.join(' < ')}).`,
   });
   return [
-    // The feature's own files at its root: index.ts, the entry point, may import any folder.
+    // Every file of the feature, whatever its place: no other feature's internals, no other feature
+    // the feature does not depend on, no climbing out of the feature. The blocks below override this
+    // one for the files they match, so a file outside the role folders keeps these checks.
+    { files: [`src/features/${feature}/**`], rules: restrict(deepImport, forbiddenFeatures, leavesFeature(2)) },
+    // Only index.ts, the entry point, sits at the feature's root; it may import any folder.
+    { files: [`src/features/${feature}/index.ts`], rules: restrict(deepImport, forbiddenFeatures, leavesFeature(1)) },
+    // Any other file at the root belongs in a role folder: until it is moved, it is linted as a domain file.
     {
-      files: [`src/features/${feature}/*.ts`],
-      rules: restrict(deepImport, forbiddenFeatures, leavesFeature(1)),
+      files: [`src/features/${feature}/*.{ts,tsx}`],
+      ignores: ['**/index.ts'],
+      rules: { ...restrict(deepImport, forbiddenFeatures, leavesFeature(1), impureDomainImport, fullEntryFromDomain), ...noNetworkInDomain },
     },
     ...ROLES.flatMap((role, index) => {
       const later = ROLES.slice(index + 1);

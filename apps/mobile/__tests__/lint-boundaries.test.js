@@ -58,6 +58,20 @@ test('route files and the database layer import features through their entry poi
   await fails('src/db/seed.ts', "import { sessionDate } from '@/features/plans/domain/plan';");
 });
 
+test('files outside the role folders keep the feature checks', async () => {
+  await fails('src/features/workouts/Foo.tsx', "import { PlanPicker } from '@/features/plans';");
+  await fails('src/features/workouts/utils/x.ts', "import { PlanPicker } from '@/features/plans';");
+  await fails('src/features/workouts/__tests__/x.test.ts', "import { PlanPicker } from '@/features/plans';");
+  await fails('src/features/workouts/utils/x.ts', "import { planEnd } from '@/features/plans/plan';");
+  await fails('src/features/workouts/__tests__/x.test.ts', "import { planEnd } from '../../plans/domain';");
+  await passes('src/features/workouts/__tests__/x.test.ts', "import { totals } from '../domain/workout';");
+  // A file at the root, other than index.ts, is linted as a domain file: pure, and no way out of the feature.
+  await fails('src/features/workouts/workout2.ts', "import x from 'react';");
+  await fails('src/features/workouts/Foo.tsx', "import { View } from 'react-native';");
+  await fails('src/features/workouts/workout2.ts', "import { planEnd } from '../plans/domain';");
+  await passes('src/features/workouts/index.ts', "export { Foo } from './screens/Foo';");
+});
+
 test('domain folders stay pure', async () => {
   for (const specifier of ['react', 'react-native', '@/db/client', 'expo-sqlite', 'drizzle-orm', 'expo-secure-store']) {
     await fails('src/features/workouts/domain/workout.ts', `import x from '${specifier}';`);
