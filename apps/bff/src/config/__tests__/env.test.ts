@@ -4,12 +4,22 @@ describe('loadEnv', () => {
   const TOKEN = 'a'.repeat(32);
   const valid = { GARMIN_PERSONAL_API_KEY: 'garmin-key', BFF_ACCESS_TOKEN: TOKEN };
 
-  it('reads the required secrets and defaults the port', () => {
+  it('reads the required secrets and defaults the port and the git SHA', () => {
     expect(loadEnv(valid)).toEqual({
       garminPersonalApiKey: 'garmin-key',
       bffAccessToken: TOKEN,
       port: 3000,
+      gitSha: 'unknown',
     });
+  });
+
+  it('reads the git SHA the image was built from', () => {
+    const sha = '3f9c2a1b7d4e5f60718293a4b5c6d7e8f9012345';
+    expect(loadEnv({ ...valid, GIT_SHA: sha }).gitSha).toBe(sha);
+  });
+
+  it('treats an empty git SHA as unknown', () => {
+    expect(loadEnv({ ...valid, GIT_SHA: '' }).gitSha).toBe('unknown');
   });
 
   it('reads the port when given', () => {

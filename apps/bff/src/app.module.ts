@@ -7,6 +7,7 @@ import { GarminPersonalApiActivitySource } from './infrastructure/garmin/garmin-
 import { ActivitiesController } from './interface/http/activities.controller';
 import { BearerTokenGuard } from './interface/http/bearer-token.guard';
 import { ErrorBodyFilter } from './interface/http/error-body.filter';
+import { HealthController } from './interface/http/health.controller';
 import { ACTIVITY_SOURCE, ENV, HTTP_FETCH } from './tokens';
 
 /** Composition root: the only place that knows which adapter backs each port. */
@@ -15,7 +16,7 @@ export class AppModule {
   static register(env: Env): DynamicModule {
     return {
       module: AppModule,
-      controllers: [ActivitiesController],
+      controllers: [ActivitiesController, HealthController],
       providers: [
         { provide: ENV, useValue: env },
         // Bound so it is still called as a function of globalThis, which Node's fetch requires.

@@ -9,7 +9,7 @@ import { HTTP_FETCH } from '../tokens';
 
 const TOKEN = 'a'.repeat(32);
 const API_KEY = 'personal-api-key-under-test';
-const env: Env = { garminPersonalApiKey: API_KEY, bffAccessToken: TOKEN, port: 0 };
+const env: Env = { garminPersonalApiKey: API_KEY, bffAccessToken: TOKEN, port: 0, gitSha: 'unknown' };
 
 describe('AppModule (composition root, only the network replaced)', () => {
   let app: INestApplication;
